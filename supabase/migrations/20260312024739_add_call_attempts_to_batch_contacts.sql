@@ -1,0 +1,4 @@
+/*\n  # Add Call Attempts Tracking\n\n  ## Overview\n  Adds call attempt tracking to batch_contacts table to monitor how many times\n  each inspector has been contacted.\n\n  ## Changes\n  \n  ### 1. Add call_attempts column to batch_contacts\n  - `call_attempts` (integer, default 1) - Number of call attempts made to this inspector\n\n  ## Migration Strategy\n  - Uses IF NOT EXISTS check to safely add column\n  - Sets default value of 1 for existing records\n\n  ## Notes\n  - Default of 1 assumes existing batch contacts have been called at least once\n  - This field can be incremented when multiple call attempts are made\n*/\n\n-- Add call_attempts column to batch_contacts table\nDO $$\nBEGIN\n  IF NOT EXISTS (\n    SELECT 1 FROM information_schema.columns\n    WHERE table_name = 'batch_contacts' AND column_name = 'call_attempts'\n  ) THEN\n    ALTER TABLE batch_contacts ADD COLUMN call_attempts integer DEFAULT 1;
+\n  END IF;
+\nEND $$;
+;

@@ -1,0 +1,17 @@
+/*\n  # Create Storm Risk Calculation Function\n\n  ## Overview\n  This migration creates a Supabase RPC function that calculates storm risk for a given ZIP code.\n\n  ## Function Details\n  \n  ### `calculate_storm_risk(zip_input text)`\n  \n  Accepts a ZIP code and returns comprehensive storm risk data including:\n  - ZIP code\n  - Overall risk score (0-100)\n  - Risk level category (Low, Moderate, High, Critical)\n  - Hurricane risk score\n  - Flood risk score\n  - Coastal exposure score\n  - Insurance risk category\n  \n  ## Behavior\n  \n  - If ZIP code exists in `zip_risk_map`, returns actual data\n  - If ZIP code does not exist, returns fallback moderate risk scores\n  - Always returns a valid result (never null)\n  \n  ## Return Type\n  \n  Returns JSON object with structure:\n  ```json\n  {\n    "zip": "33101",\n    "score": 85,\n    "risk_level": "Critical",\n    "hurricane_risk": 85,\n    "flood_risk": 78,\n    "coastal_exposure": 92,\n    "insurance_risk": "Severe"\n  }\n  ```\n*/\n\n-- Create function to calculate storm risk\nCREATE OR REPLACE FUNCTION calculate_storm_risk(zip_input text)\nRETURNS json\nLANGUAGE plpgsql\nSECURITY DEFINER\nAS $$\nDECLARE\n  result json;
+\n  risk_record RECORD;
+\n  risk_level text;
+\nBEGIN\n  -- Try to find the ZIP in the database\n  SELECT \n    zip_code,\n    overall_risk_score,\n    hurricane_risk_score,\n    flood_risk_score,\n    coastal_exposure_score,\n    insurance_claim_risk\n  INTO risk_record\n  FROM zip_risk_map\n  WHERE zip_code = zip_input;
+\n  \n  -- If ZIP found, use actual data\n  IF FOUND THEN\n    -- Determine risk level based on overall score\n    IF risk_record.overall_risk_score >= 75 THEN\n      risk_level := 'Critical';
+\n    ELSIF risk_record.overall_risk_score >= 50 THEN\n      risk_level := 'High';
+\n    ELSIF risk_record.overall_risk_score >= 25 THEN\n      risk_level := 'Moderate';
+\n    ELSE\n      risk_level := 'Low';
+\n    END IF;
+\n    \n    -- Build response with actual data\n    result := json_build_object(\n      'zip', risk_record.zip_code,\n      'score', risk_record.overall_risk_score,\n      'risk_level', risk_level,\n      'hurricane_risk', risk_record.hurricane_risk_score,\n      'flood_risk', risk_record.flood_risk_score,\n      'coastal_exposure', risk_record.coastal_exposure_score,\n      'insurance_risk', risk_record.insurance_claim_risk\n    );
+\n  ELSE\n    -- ZIP not found, return fallback moderate risk\n    result := json_build_object(\n      'zip', zip_input,\n      'score', 45,\n      'risk_level', 'Moderate',\n      'hurricane_risk', 42,\n      'flood_risk', 38,\n      'coastal_exposure', 35,\n      'insurance_risk', 'Moderate'\n    );
+\n  END IF;
+\n  \n  RETURN result;
+\nEND;
+\n$$;
+\n\n-- Grant execute permission to anonymous and authenticated users\nGRANT EXECUTE ON FUNCTION calculate_storm_risk(text) TO anon, authenticated;
+;
