@@ -5,7 +5,7 @@ interface ScientificRiskBreakdownProps {
     hurricane_risk: number;
     flood_risk: number;
     coastal_exposure: number;
-    distance_to_coast: number;
+    distance_to_coast?: number;
     fema_flood_zone: number;
     hurricane_corridor: number;
   };
@@ -49,8 +49,8 @@ export function ScientificRiskBreakdownSection({
           />
           <RiskComponent
             icon={<Navigation className="w-6 h-6" />}
-            label="Distance to Coast"
-            description="Proximity to coastline and water bodies"
+            label="Distance-to-Coast Score"
+            description="Normalized ZIP-level proximity score from the reference dataset"
             score={riskComponents.distance_to_coast}
           />
           <RiskComponent
@@ -94,11 +94,12 @@ interface RiskComponentProps {
   icon: React.ReactNode;
   label: string;
   description: string;
-  score: number;
+  score?: number;
 }
 
 function RiskComponent({ icon, label, description, score }: RiskComponentProps) {
-  const percentage = (score / 5) * 100;
+  const hasScore = typeof score === 'number';
+  const percentage = hasScore ? (score / 5) * 100 : 0;
 
   const getColorClasses = (value: number) => {
     if (value >= 4) return {
@@ -118,7 +119,13 @@ function RiskComponent({ icon, label, description, score }: RiskComponentProps) 
     };
   };
 
-  const colors = getColorClasses(score);
+  const colors = hasScore
+    ? getColorClasses(score)
+    : {
+        text: 'text-slate-500',
+        bg: 'bg-slate-300',
+        bgLight: 'bg-slate-100'
+      };
 
   return (
     <div className="bg-white rounded-xl p-5 border border-slate-200">
@@ -133,8 +140,14 @@ function RiskComponent({ icon, label, description, score }: RiskComponentProps) 
           </div>
         </div>
         <div className="text-right">
-          <span className={`text-2xl font-bold ${colors.text}`}>{score}</span>
-          <span className="text-slate-500 text-sm ml-1">/5</span>
+          {hasScore ? (
+            <>
+              <span className={`text-2xl font-bold ${colors.text}`}>{score}</span>
+              <span className="text-slate-500 text-sm ml-1">/5</span>
+            </>
+          ) : (
+            <span className="text-sm font-semibold text-slate-500">Unavailable</span>
+          )}
         </div>
       </div>
 

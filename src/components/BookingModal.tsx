@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Calendar, CheckCircle } from 'lucide-react';
 import { StormRiskReport } from '../api/stormReports';
 import { submitInspectionBooking } from '../api/inspectionRequests';
+import { BrandIconBadge } from './BrandIconBadge';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface BookingModalProps {
     city: string;
     zipCode: string;
     inspectionType: string;
+    rationaleSummary: string;
   }>;
 }
 
@@ -76,15 +78,15 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl sm:rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex items-center justify-between">
+      <div className="bg-white rounded-xl sm:rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" style={{ border: '1px solid var(--ds-gray-200)' }}>
+        <div className="sticky top-0 bg-white px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex items-center justify-between" style={{ borderBottom: '1px solid var(--ds-gray-200)' }}>
           <div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">Schedule Your Inspection</h2>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">Fill out the form below to request an inspection</p>
+            <h2 className="text-xl sm:text-2xl font-semibold" style={{ color: 'var(--ds-primary-900)' }}>Schedule Your Inspection</h2>
+            <p className="text-xs sm:text-sm mt-1" style={{ color: 'var(--ds-gray-500)' }}>Fill out the form below to request an inspection</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2"
+            className="ds-btn-secondary min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 rounded-full"
           >
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
@@ -92,15 +94,41 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
 
         {submitSuccess ? (
           <div className="p-6 sm:p-8 text-center">
-            <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-2">Request Submitted!</h3>
-            <p className="text-sm sm:text-base text-gray-600">We'll contact you shortly to confirm your inspection.</p>
+            <div className="mx-auto mb-4 flex justify-center">
+              <BrandIconBadge icon={CheckCircle} size="lg" tone="success" />
+            </div>
+            <h3 className="text-xl sm:text-2xl font-semibold mb-2" style={{ color: 'var(--ds-primary-900)' }}>Request Submitted!</h3>
+            <p className="text-sm sm:text-base" style={{ color: 'var(--ds-gray-500)' }}>We'll contact you shortly to confirm your inspection.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+            {(initialFormData?.inspectionType || initialFormData?.rationaleSummary) && (
+              <div
+                className="rounded-xl p-4"
+                style={{
+                  background: 'rgba(47, 107, 255, 0.06)',
+                  border: '1px solid rgba(47, 107, 255, 0.16)',
+                }}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--ds-accent-600)' }}>
+                  Companion handoff
+                </div>
+                {initialFormData?.inspectionType && (
+                  <div className="mt-2 text-sm font-semibold" style={{ color: 'var(--ds-primary-900)' }}>
+                    Recommended inspection: {initialFormData.inspectionType}
+                  </div>
+                )}
+                {initialFormData?.rationaleSummary && (
+                  <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--ds-gray-500)' }}>
+                    {initialFormData.rationaleSummary}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ds-primary-900)' }}>
                   Full Name
                 </label>
                 <input
@@ -109,12 +137,12 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                   value={formData.fullName}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 h-12 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  className="ds-input w-full px-4 py-3 h-12 text-base rounded-lg"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ds-primary-900)' }}>
                   Phone
                 </label>
                 <input
@@ -123,13 +151,13 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 h-12 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  className="ds-input w-full px-4 py-3 h-12 text-base rounded-lg"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ds-primary-900)' }}>
                 Email
               </label>
               <input
@@ -138,12 +166,12 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 h-12 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                className="ds-input w-full px-4 py-3 h-12 text-base rounded-lg"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ds-primary-900)' }}>
                 Property Address
               </label>
               <input
@@ -152,13 +180,13 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                 value={formData.address}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 h-12 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                className="ds-input w-full px-4 py-3 h-12 text-base rounded-lg"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ds-primary-900)' }}>
                   City
                 </label>
                 <input
@@ -167,12 +195,12 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                   value={formData.city}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 h-12 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  className="ds-input w-full px-4 py-3 h-12 text-base rounded-lg"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ds-primary-900)' }}>
                   ZIP Code
                 </label>
                 <input
@@ -181,14 +209,14 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                   value={formData.zipCode}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 h-12 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  className="ds-input w-full px-4 py-3 h-12 text-base rounded-lg"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ds-primary-900)' }}>
                   Preferred Inspection Date
                 </label>
                 <input
@@ -198,12 +226,12 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                   onChange={handleChange}
                   required
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 h-12 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  className="ds-input w-full px-4 py-3 h-12 text-base rounded-lg"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ds-primary-900)' }}>
                   Preferred Time Window
                 </label>
                 <select
@@ -211,7 +239,7 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                   value={formData.preferredTime}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 h-12 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  className="ds-input w-full px-4 py-3 h-12 text-base rounded-lg"
                 >
                   <option value="">Select time</option>
                   <option value="8:00 AM - 10:00 AM">8:00 AM - 10:00 AM</option>
@@ -224,7 +252,7 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--ds-primary-900)' }}>
                 Inspection Type
               </label>
               <select
@@ -232,7 +260,7 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                 value={formData.inspectionType}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 h-12 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                className="ds-input w-full px-4 py-3 h-12 text-base rounded-lg"
               >
                 <option value="4-Point Inspection">4-Point Inspection</option>
                 <option value="Wind Mitigation Inspection">Wind Mitigation Inspection</option>
@@ -241,7 +269,7 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
             </div>
 
             {submitError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-red-700 text-sm">
+              <div className="rounded-lg p-3 sm:p-4 text-sm" style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.18)', color: 'var(--ds-danger)' }}>
                 {submitError}
               </div>
             )}
@@ -249,7 +277,7 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-slate-900 text-white py-4 px-8 min-h-[44px] rounded-lg font-semibold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+              className="ds-btn-primary w-full py-4 px-8 min-h-[44px] rounded-lg font-semibold flex items-center justify-center gap-2 active:scale-[0.99]"
             >
               <Calendar className="w-5 h-5" />
               {isSubmitting ? 'Submitting...' : 'Request Inspection'}

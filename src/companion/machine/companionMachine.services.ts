@@ -36,6 +36,35 @@ function getDominantFactor(reportContext: CompanionReportContext) {
   return factors[0];
 }
 
+function hasEnoughContextForRecommendation(
+  reportContext: CompanionReportContext,
+  sessionContext: CompanionSessionContext
+) {
+  const personalization = sessionContext.personalization;
+  const structuralSignals =
+    Number(Boolean(personalization.roofType)) + Number(Boolean(personalization.yearBuilt));
+  const hasHighWindSignal = reportContext.hurricaneScore >= 4;
+  const hasHighFloodSignal = reportContext.floodScore >= 4;
+
+  if (!personalization.exactAddress) {
+    return false;
+  }
+
+  if (personalization.userGoal) {
+    return structuralSignals >= 1;
+  }
+
+  if (hasHighWindSignal && personalization.roofType) {
+    return true;
+  }
+
+  if (hasHighFloodSignal && personalization.yearBuilt) {
+    return true;
+  }
+
+  return structuralSignals >= 2;
+}
+
 function buildRecommendation(
   reportContext: CompanionReportContext,
   sessionContext: CompanionSessionContext
@@ -68,32 +97,36 @@ function buildRecommendation(
   };
 }
 
-function buildLiveIntelligenceMessage(reportContext: CompanionReportContext): {
+function buildLiveIntelligenceMessage(
+  reportContext: CompanionReportContext,
+  sessionContext: CompanionSessionContext
+): {
   message: string;
   prompts: string[];
 } {
   const locationLabel = getLocationLabel(reportContext);
   const verifiedSignal = reportContext.evidenceSnapshot?.cards[0];
   const headline = verifiedSignal?.headline;
+  const hasRecommendationContext = hasEnoughContextForRecommendation(reportContext, sessionContext);
 
   if (headline) {
     return {
-      message: `I found a verified public signal for ${locationLabel}: "${headline.title}" from ${headline.source}. I am treating that as live regional context, and pairing it with the report’s broader wind and flood profile so we can separate what is current from what is structural.`,
-      prompts: [
-        'What does this mean for my home?',
-        'Personalize this for my home',
-        'What should I do next?',
-      ],
+      message: hasRecommendationContext
+        ? `I found a verified public signal for ${locationLabel}: "${headline.title}" from ${headline.source}. I am treating it as supporting context around the home, so the next useful move is to turn that into a recommendation instead of staying at the news layer.`
+        : `I found a verified public signal for ${locationLabel}: "${headline.title}" from ${headline.source}. I am treating it as supporting context, but the next useful move is to connect it to your home rather than staying at the regional level.`,
+      prompts: hasRecommendationContext
+        ? ['What should I do next?', 'What does this mean for my home?']
+        : ['Personalize this for my home', 'What does this mean for my home?'],
     };
   }
 
   return {
-    message: `I do not have a verified local article stored for ${locationLabel} in this report snapshot, so I am using the live evidence layer more conservatively. That means the Companion can still talk about regional wind, flood, and coastal exposure, but it should not imply a specific recent local event that was not verified.`,
-    prompts: [
-      'What does this mean for my home?',
-      'Personalize this for my home',
-      'What should I do next?',
-    ],
+    message: hasRecommendationContext
+      ? `I do not have a verified local article stored for ${locationLabel} in this report snapshot, so I am using live context conservatively. I can still connect the broader wind, flood, and coastal picture to your decision, but the next useful move is to turn that into a recommendation instead of staying in regional context.`
+      : `I do not have a verified local article stored for ${locationLabel} in this report snapshot, so I am using live context conservatively. I can still connect the broader wind, flood, and coastal picture to your home, but I should not imply a specific recent event that was not verified.`,
+    prompts: hasRecommendationContext
+      ? ['What should I do next?', 'Why this inspection?']
+      : ['Personalize this for my home', 'What does this mean for my home?'],
   };
 }
 
@@ -105,24 +138,24 @@ function buildInterpretationMessage(
   const lower = text.toLowerCase();
   const locationLabel = getLocationLabel(reportContext);
   const dominantFactor = getDominantFactor(reportContext);
+  const hasRecommendationContext = hasEnoughContextForRecommendation(reportContext, sessionContext);
 
   if (lower.includes('what does this mean for my home') || lower.includes('what does this mean for my house')) {
-    if (sessionContext.personalization.completionScore >= 0.6) {
+    if (hasRecommendationContext) {
       const recommendation = buildRecommendation(reportContext, sessionContext);
       return {
         stage: 'recommend_action',
-        message: `With the property details you already shared, the best way to translate the live and regional signals into action is a ${recommendation.inspectionType}. ${recommendation.rationale}`,
+        message: `With the property details you already shared, the clearest next step for this home is a ${recommendation.inspectionType}. ${recommendation.rationale}`,
         prompts: [
-          'Why this inspection?',
-          'What does that inspection include?',
           'Schedule my inspection',
+          'Why this inspection?',
         ],
       };
     }
     return {
       stage: 'personalize_property',
-      message: `I can translate the regional and live signals into property-level guidance, but I need a little more context about the home first. Let’s start with the address so the Companion can move from general location risk to a more useful property-specific interpretation.`,
-      prompts: ['Use this address', 'Skip to roof type', 'Why do you need my address?'],
+      message: `I can make this much more useful for your home, but I need a little more property context first. Let’s start with the address so I can move from general area exposure to guidance tied to the actual property.`,
+      prompts: ['Use this address', 'Why do you need my address?'],
       requestedFields: ['exactAddress'],
     };
   }
@@ -135,8 +168,8 @@ function buildInterpretationMessage(
   ) {
     return {
       stage: 'personalize_property',
-      message: `Great. Let’s personalize this report to the property. We’ll start with the exact address so the Companion can move from ${locationLabel} at the ZIP level toward the actual home.`,
-      prompts: ['Use this address', 'Why do you need my address?', 'Skip to roof type'],
+      message: `Great. Let’s personalize this report to the property. We’ll start with the exact address so I can move from ${locationLabel} at the ZIP level toward the actual home.`,
+      prompts: ['Use this address', 'Why do you need my address?'],
       requestedFields: ['exactAddress'],
     };
   }
@@ -152,7 +185,7 @@ function buildInterpretationMessage(
     lower.includes('news') ||
     lower.includes('flooding here')
   ) {
-    const liveIntelligence = buildLiveIntelligenceMessage(reportContext);
+    const liveIntelligence = buildLiveIntelligenceMessage(reportContext, sessionContext);
     return {
       stage: 'live_intelligence',
       message: liveIntelligence.message,
@@ -163,10 +196,9 @@ function buildInterpretationMessage(
   if (lower.includes('score') || lower.includes('report')) {
     return {
       stage: 'interpret_report',
-      message: `Your storm score of ${reportContext.stormScore}/100 reflects regional exposure, not a full property inspection result. For ${locationLabel}, the strongest signal in this report is ${dominantFactor.key}, which is why the report is framing this as a meaningful readiness issue rather than just general awareness.`,
+      message: `Your storm score of ${reportContext.stormScore}/100 is a regional exposure reading, not a property inspection result. For ${locationLabel}, the biggest driver in this report is ${dominantFactor.key}, which means that is the first place to focus when deciding whether this home needs a closer look.`,
       prompts: [
-        'What factor matters most?',
-        'How serious is this for insurance?',
+        'What should I do next?',
         'Personalize this for my home',
       ],
     };
@@ -175,69 +207,64 @@ function buildInterpretationMessage(
   if (lower.includes('factor') || lower.includes('matter') || lower.includes('important')) {
     return {
       stage: 'interpret_report',
-      message: `The most important factor in this report is ${dominantFactor.key}. In practical terms, that means the report sees the biggest risk signal coming from that category more than the others, so the next useful step is to validate how that regional exposure translates to your specific property condition.`,
-      prompts: [
-        'Explain my storm score',
-        'What should I do next?',
-        'Personalize this for my home',
-      ],
-    };
-  }
-
-  if (lower.includes('insurance')) {
-    if (sessionContext.personalization.completionScore >= 0.6) {
-      const recommendation = buildRecommendation(reportContext, sessionContext);
-      return {
-        stage: 'recommend_action',
-        message: `Based on your report and the property details you provided, the strongest next step is a ${recommendation.inspectionType}. ${recommendation.rationale}`,
-        prompts: [
-          'What does that inspection include?',
-          'Why this inspection?',
-          'Schedule my inspection',
-        ],
-      };
-    }
-    return {
-      stage: 'interpret_report',
-      message: `This report can help frame the conversation around exposure, but it is not insurance documentation by itself. Its value is that it shows why an inspection may matter. If your goal is insurance readiness, the next useful step is to identify which inspection would produce the strongest supporting documentation for your situation.`,
+      message: `The strongest signal in this report is ${dominantFactor.key}. In practical terms, that is the factor most likely to shape real storm-related issues for this property area, so the next useful step is to see how that exposure translates to the condition of the actual home.`,
       prompts: [
         'What should I do next?',
-        'Personalize this for my home',
-        'Explain my storm score',
-      ],
-    };
-  }
-
-  if (lower.includes('next') || lower.includes('should i do') || lower.includes('inspection')) {
-    if (sessionContext.personalization.completionScore >= 0.6) {
-      const recommendation = buildRecommendation(reportContext, sessionContext);
-      return {
-        stage: 'recommend_action',
-        message: `Based on your report and the property details you provided, the strongest next step is a ${recommendation.inspectionType}. ${recommendation.rationale}`,
-        prompts: [
-          'What does that inspection include?',
-          'Why this inspection?',
-          'Schedule my inspection',
-        ],
-      };
-    }
-    return {
-      stage: 'interpret_report',
-      message: `The next best step is to translate this regional report into property-specific guidance. Right now the report tells you where the exposure is coming from. The next layer is to add details about the home itself so the Companion can narrow the recommendation and point you toward the most relevant inspection.`,
-      prompts: [
-        'Personalize this for my home',
-        'What factor matters most?',
         'How serious is this for insurance?',
       ],
     };
   }
 
+  if (lower.includes('insurance')) {
+    if (hasRecommendationContext) {
+      const recommendation = buildRecommendation(reportContext, sessionContext);
+      return {
+        stage: 'recommend_action',
+        message: `Based on your report and the property details you provided, the strongest next step is a ${recommendation.inspectionType}. ${recommendation.rationale}`,
+        prompts: [
+          'Schedule my inspection',
+          'Why this inspection?',
+        ],
+      };
+    }
+    return {
+      stage: 'interpret_report',
+      message: `This report helps explain exposure, but it is not insurance documentation by itself. Its value is showing why an inspection may matter. If your goal is insurance readiness, the next step is to narrow this into the inspection that would create the strongest supporting documentation for your situation.`,
+      prompts: [
+        'What should I do next?',
+        'What matters most in this report?',
+      ],
+    };
+  }
+
+  if (lower.includes('next') || lower.includes('should i do') || lower.includes('inspection')) {
+    if (hasRecommendationContext) {
+      const recommendation = buildRecommendation(reportContext, sessionContext);
+      return {
+        stage: 'recommend_action',
+        message: `Based on your report and the property details you provided, the strongest next step is a ${recommendation.inspectionType}. ${recommendation.rationale}`,
+        prompts: [
+          'Schedule my inspection',
+          'Why this inspection?',
+        ],
+      };
+    }
+    return {
+      stage: 'personalize_property',
+      message: `The next best step is to turn this regional report into property-specific guidance. I only need a few details about the home to narrow the recommendation and point you toward the right inspection.`,
+      prompts: [
+        'Use this address',
+        'Why do you need my address?',
+      ],
+      requestedFields: ['exactAddress'],
+    };
+  }
+
   return {
     stage: 'interpret_report',
-    message: `I can help interpret this report for ${locationLabel}. The current report shows a ${reportContext.riskLevel.toLowerCase()} profile with the strongest signal in ${dominantFactor.key}. If you want, we can go deeper into what that means, how it connects to insurance, or how to personalize it to the property.`,
+    message: `I can help interpret this report for ${locationLabel}. Right now it shows a ${reportContext.riskLevel.toLowerCase()} profile, with the strongest signal in ${dominantFactor.key}. From here, the most useful paths are to understand that signal, personalize it to the home, or move toward the right next step.`,
     prompts: [
       'Explain my storm score',
-      'What factor matters most?',
       'What should I do next?',
     ],
   };
@@ -248,8 +275,8 @@ function getNextRequestedField(sessionContext: CompanionSessionContext): Request
   if (!p.exactAddress) return 'exactAddress';
   if (!p.roofType) return 'roofType';
   if (!p.yearBuilt) return 'yearBuilt';
-  if (!p.damageHistory?.length) return 'damageHistory';
   if (!p.userGoal) return 'userGoal';
+  if (!p.damageHistory?.length) return 'damageHistory';
   return undefined;
 }
 
@@ -261,27 +288,27 @@ function buildPersonalizationQuestion(field: RequestedField, reportContext: Comp
     case 'exactAddress':
       return {
         message: `Let’s start with the property address. This helps the Companion move beyond ZIP ${reportContext.zipCode} and prepare more property-specific guidance.`,
-        prompts: ['Use this address', 'Skip to roof type'],
+        prompts: ['Use this address', 'Why do you need my address?'],
       };
     case 'roofType':
       return {
-        message: 'What type of roof does the property have? Roof type can materially change how wind and water vulnerabilities should be interpreted.',
-        prompts: ['Shingle', 'Tile', 'Metal'],
+        message: 'What type of roof does the property have? Roof type is one of the fastest ways to sharpen how wind exposure should be read for this home.',
+        prompts: ['Shingle', 'Tile'],
       };
     case 'yearBuilt':
       return {
-        message: 'Do you know roughly when the property was built? Construction era helps frame how much weight to place on the regional wind and water signals.',
-        prompts: ['Before 1995', '1995-2005', '2006-2015'],
-      };
-    case 'damageHistory':
-      return {
-        message: 'Has the property had prior leaks, storm damage, or insurance claims? That gives the Companion a much stronger signal about real vulnerability.',
-        prompts: ['Previous leaks', 'Storm damage', 'No known issues'],
+        message: 'Do you know roughly when the property was built? Construction era helps separate a broad regional signal from what may actually matter for this home.',
+        prompts: ['Before 1995', '1995-2005'],
       };
     case 'userGoal':
       return {
-        message: 'What are you mainly trying to solve right now? Your goal changes the kind of recommendation the Companion should make next.',
-        prompts: ['Prevention', 'Insurance', 'Understand my risk'],
+        message: 'What are you mainly trying to solve right now? Your goal helps me decide what kind of inspection would be most useful next.',
+        prompts: ['Prevention', 'Insurance'],
+      };
+    case 'damageHistory':
+      return {
+        message: 'One last optional signal: has the property had prior leaks, storm damage, or insurance claims? This can sharpen urgency, but I may already have enough to recommend a next step.',
+        prompts: ['Previous leaks', 'No known issues'],
       };
     default:
       return {
@@ -395,16 +422,22 @@ export async function resolvePersonalizationStep(
     ...updatedPersonalization,
   };
 
-  const nextField = getNextRequestedField({
+  const nextSessionContext = {
     ...sessionContext,
     personalization: nextState,
-  });
-  const recommendation = !nextField
-    ? buildRecommendation(reportContext, {
-        ...sessionContext,
-        personalization: nextState,
-      })
-    : undefined;
+  };
+
+  const readyForRecommendation = hasEnoughContextForRecommendation(
+    reportContext,
+    nextSessionContext
+  );
+  const nextField = readyForRecommendation
+    ? undefined
+    : getNextRequestedField(nextSessionContext);
+  const recommendation =
+    readyForRecommendation || !nextField
+      ? buildRecommendation(reportContext, nextSessionContext)
+      : undefined;
 
   const assistantMessage: CompanionMessage = {
     id: `assistant-${Date.now() + 1}`,
@@ -412,14 +445,14 @@ export async function resolvePersonalizationStep(
     stage: nextField ? 'personalize_property' : 'recommend_action',
     text: nextField
       ? buildPersonalizationQuestion(nextField, reportContext).message
-      : `Great, we now have enough property context to move beyond the ZIP-level reading. The best next step for this property is a ${recommendation?.inspectionType}. ${recommendation?.rationale}`,
+      : `Great, I already have enough property context to move beyond the ZIP-level reading. The best next step for this property is a ${recommendation?.inspectionType}. ${recommendation?.rationale}`,
     timestamp: new Date().toISOString(),
     sourceMode: 'personalized',
   };
 
   const nextPrompts = nextField
     ? buildPersonalizationQuestion(nextField, reportContext).prompts
-    : ['What inspection would you recommend?', 'Why does this change the report?', 'What should I do next?'];
+    : ['Schedule my inspection', 'Why this inspection?'];
 
   return {
     stage: nextField ? 'personalize_property' : 'recommend_action',

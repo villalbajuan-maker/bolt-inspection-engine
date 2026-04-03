@@ -40,8 +40,8 @@ export function HeroHeaderSection({ stormScore, riskLevel }: HeroHeaderSectionPr
           </div>
 
           <p className="text-lg sm:text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto">
-            Your property is located in a region with {riskLevel.toLowerCase()} storm exposure.
-            This report provides technical analysis of geographic risk factors and structural vulnerability indicators.
+            The reported ZIP area falls within a region with {riskLevel.toLowerCase()} storm exposure.
+            This report provides ZIP-level geographic risk analysis and inspection-oriented structural vulnerability guidance.
           </p>
         </div>
       </div>

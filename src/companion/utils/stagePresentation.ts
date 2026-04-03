@@ -3,19 +3,15 @@ import type { CompanionStage, SourceMode } from '../domain/companion.types';
 export function getStageTitle(stage: CompanionStage) {
   switch (stage) {
     case 'interpret_report':
-      return 'Understand Your Report';
+      return 'Understand the report';
     case 'personalize_property':
-      return 'Personalize This Property';
+      return 'Personalize the property';
     case 'live_intelligence':
-      return 'Live Regional Context';
+      return 'Check live context';
     case 'recommend_action':
-      return 'Recommended Next Step';
-    case 'conversion_soft':
-      return 'Review Your Options';
-    case 'conversion_hard':
-      return 'Schedule The Right Inspection';
+      return 'Review the recommendation';
     default:
-      return 'Start With Your Report';
+      return 'Start with the report';
   }
 }
 
@@ -25,35 +21,28 @@ export function getStageSummary(
 ) {
   switch (stage) {
     case 'interpret_report':
-      return `Use the Companion to translate the report for ${locationLabel || 'this property area'} into plain language before moving into property-specific guidance.`;
+      return `Translate the report for ${locationLabel || 'this area'} into plain language before moving into property-specific guidance.`;
     case 'personalize_property':
-      return 'Add a few details about the home so the Companion can turn regional exposure into a more relevant inspection recommendation.';
+      return 'Add a few home details so the guidance becomes more specific to this property.';
     case 'live_intelligence':
-      return 'Review verified public signals alongside the broader geographic risk profile to separate what is current from what is structural.';
+      return 'Review verified public signals alongside the broader regional picture.';
     case 'recommend_action':
-      return 'This is the point where the report and the property context come together into a concrete next best action.';
-    case 'conversion_soft':
-      return 'Compare the next options before deciding whether to move into booking.';
-    case 'conversion_hard':
-      return 'You are close to booking. Review the recommendation and move into the scheduling flow with the right context attached.';
+      return 'Bring the report and property context together into one clear next step and move naturally into booking.';
     default:
-      return 'Understand the report, personalize it to the property, and move toward the most useful next step.';
+      return 'Understand the report, personalize it, and move toward the right next step.';
   }
 }
 
 export function getStageLabel(stage: CompanionStage) {
   switch (stage) {
     case 'interpret_report':
-      return 'Understanding the report';
+      return 'Reading the report';
     case 'personalize_property':
-      return 'Personalizing the property';
+      return 'Adding property context';
     case 'live_intelligence':
-      return 'Reviewing live regional context';
+      return 'Checking live context';
     case 'recommend_action':
-      return 'Preparing the next best action';
-    case 'conversion_soft':
-    case 'conversion_hard':
-      return 'Preparing the booking step';
+      return 'Preparing the recommendation';
     default:
       return 'Starting the conversation';
   }

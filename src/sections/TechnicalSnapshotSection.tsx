@@ -3,25 +3,21 @@ import { TechnicalSnapshotMap } from '../components/TechnicalSnapshotMap';
 
 interface TechnicalSnapshotSectionProps {
   zipCode: string;
-  lat: number;
-  lon: number;
+  lat?: number;
+  lon?: number;
+  distanceToCoastScore?: number;
   coastalScore: number;
   floodScore: number;
-}
-
-function calculateDistanceToCoast(coastalScore: number): number {
-  return Math.max(5, Math.round(100 - (coastalScore * 20)));
 }
 
 export function TechnicalSnapshotSection({
   zipCode,
   lat,
   lon,
+  distanceToCoastScore,
   coastalScore,
   floodScore
 }: TechnicalSnapshotSectionProps) {
-  const distanceToCoast = calculateDistanceToCoast(coastalScore);
-
   return (
     <section className="py-12 sm:py-16 bg-white">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
@@ -30,7 +26,7 @@ export function TechnicalSnapshotSection({
             Geographic Technical Snapshot
           </h2>
           <p className="text-slate-600">
-            Precise location analysis and geographic risk indicators
+            ZIP-level geographic reference and normalized risk indicators
           </p>
         </div>
 
@@ -50,9 +46,12 @@ export function TechnicalSnapshotSection({
 
               <div className="space-y-6">
                 <DataRow label="ZIP Code" value={zipCode} />
-                <DataRow label="Latitude" value={`${lat.toFixed(6)}°`} mono />
-                <DataRow label="Longitude" value={`${lon.toFixed(6)}°`} mono />
-                <DataRow label="Distance to Coast" value={`~${distanceToCoast} miles`} />
+                <DataRow label="Latitude" value={typeof lat === 'number' ? `${lat.toFixed(6)}°` : 'Unavailable'} mono />
+                <DataRow label="Longitude" value={typeof lon === 'number' ? `${lon.toFixed(6)}°` : 'Unavailable'} mono />
+                <DataRow
+                  label="Distance-to-Coast Score"
+                  value={typeof distanceToCoastScore === 'number' ? `${distanceToCoastScore}/5` : 'Unavailable'}
+                />
 
                 <div className="pt-4 border-t border-slate-300">
                   <div className="mb-4 text-sm font-semibold text-slate-700">Risk Indicators</div>
@@ -65,8 +64,8 @@ export function TechnicalSnapshotSection({
                 <div className="flex items-start gap-2">
                   <Navigation className="w-4 h-4 text-slate-500 mt-1 flex-shrink-0" />
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Scores are calculated using geographic reference data from the Florida ZIP Reference Dataset
-                    including coastal exposure, flood indicators and hurricane risk modeling.
+                    This snapshot uses Florida ZIP reference coordinates and normalized geographic risk scores.
+                    It is a ZIP-level technical reference, not a property-level measurement of exact home location.
                   </p>
                 </div>
               </div>

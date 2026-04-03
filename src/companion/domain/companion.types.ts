@@ -5,9 +5,7 @@ export type CompanionStage =
   | 'interpret_report'
   | 'personalize_property'
   | 'live_intelligence'
-  | 'recommend_action'
-  | 'conversion_soft'
-  | 'conversion_hard';
+  | 'recommend_action';
 
 export type SourceMode = 'report' | 'personalized' | 'live';
 export type LeadIntent = 'low' | 'medium' | 'high';

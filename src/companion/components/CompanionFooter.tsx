@@ -1,27 +1,24 @@
 import type { CompanionCTA } from '../domain/companion.types';
 import { Send } from 'lucide-react';
-import { CompanionPromptChips } from './CompanionPromptChips';
 
 type CompanionFooterProps = {
   currentInput?: string;
-  suggestedPrompts: string[];
   disabled?: boolean;
   requestedFields?: string[];
   activeCTA?: CompanionCTA;
+  suppressCTA?: boolean;
   onType?: (value: string) => void;
-  onSelectPrompt?: (prompt: string) => void;
   onSubmit?: () => void;
   onCTA?: (cta: CompanionCTA) => void;
 };
 
 export function CompanionFooter({
   currentInput = '',
-  suggestedPrompts,
   disabled = false,
   requestedFields = [],
   activeCTA,
+  suppressCTA = false,
   onType,
-  onSelectPrompt,
   onSubmit,
   onCTA,
 }: CompanionFooterProps) {
@@ -29,28 +26,22 @@ export function CompanionFooter({
   const isStructuredCapture = requestedFields.length > 0;
 
   return (
-    <div className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-          {isStructuredCapture ? 'Suggested answers' : 'Suggested questions'}
-        </div>
-        <CompanionPromptChips prompts={suggestedPrompts.slice(0, 3)} onSelectPrompt={onSelectPrompt} />
-      </div>
-      {activeCTA && (
-        <div className="mb-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+    <div className="border-t border-slate-200 bg-white px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:px-6">
+      {activeCTA && !suppressCTA && (
+        <div className="mb-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
             Recommended action
           </div>
           <button
             type="button"
             onClick={() => onCTA?.(activeCTA)}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-slate-800"
+            className="ds-btn-primary inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold"
           >
             {activeCTA.label}
           </button>
         </div>
       )}
-      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="flex items-center gap-3 rounded-[20px] border border-slate-200 bg-white px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:px-4">
         <input
           type="text"
           value={currentInput}
@@ -66,16 +57,16 @@ export function CompanionFooter({
             isAddressCapture
               ? 'Enter the exact property address to continue personalization...'
               : isStructuredCapture
-                ? 'Type an answer or choose one of the suggested options...'
-              : 'Type a question or select a prompt to continue...'
+                ? 'Type an answer to continue the conversation...'
+                : 'Ask a follow-up question...'
           }
-          className="w-full bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
+          className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
         />
         <button
           type="button"
           disabled={disabled || !currentInput.trim()}
           onClick={onSubmit}
-          className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full bg-slate-900 text-white transition-opacity disabled:opacity-50"
+          className="ds-btn-primary flex min-h-[42px] min-w-[42px] items-center justify-center rounded-full !p-0"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" />

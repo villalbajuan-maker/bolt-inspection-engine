@@ -14,11 +14,25 @@ export function useScrollReveal() {
       { threshold: 0.15 }
     );
 
-    const elements = document.querySelectorAll('.reveal');
-    elements.forEach((el) => observer.observe(el));
+    const observeCurrentElements = () => {
+      const elements = document.querySelectorAll('.reveal:not(.reveal-visible)');
+      elements.forEach((el) => observer.observe(el));
+    };
+
+    observeCurrentElements();
+
+    const mutationObserver = new MutationObserver(() => {
+      observeCurrentElements();
+    });
+
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
 
     return () => {
-      elements.forEach((el) => observer.unobserve(el));
+      mutationObserver.disconnect();
+      observer.disconnect();
     };
   }, []);
 }

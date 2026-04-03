@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Calendar, MessageSquare } from 'lucide-react';
 import { StormRiskReport } from '../api/stormReports';
 import { StormEvidenceSnapshot } from '../api/stormEvidence';
+import { getStormRiskFromSupabase } from '../api/riskData';
 import { BookingModal } from './BookingModal';
 import { CompanionModal } from '../companion';
 import { useScrollReveal } from '../hooks/useScrollReveal';
@@ -12,6 +13,7 @@ import { StormEvidenceSection } from '../sections/StormEvidenceSection';
 import { StructuralVulnerabilitySection } from '../sections/StructuralVulnerabilitySection';
 import { EngineeringInterpretationSection } from '../sections/EngineeringInterpretationSection';
 import { ProfessionalRecommendationSection } from '../sections/ProfessionalRecommendationSection';
+import { BrandIconBadge } from './BrandIconBadge';
 
 interface RiskReportPageProps {
   report: StormRiskReport & {
@@ -35,11 +37,19 @@ export function RiskReportPage({ report }: RiskReportPageProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCompanionOpen, setIsCompanionOpen] = useState(false);
+  const [referenceSnapshot, setReferenceSnapshot] = useState<{
+    lat?: number;
+    lon?: number;
+    risk_components?: {
+      distance_to_coast?: number;
+    };
+  } | null>(null);
   const [bookingPrefill, setBookingPrefill] = useState<{
     address?: string;
     city?: string;
     zipCode?: string;
     inspectionType?: string;
+    rationaleSummary?: string;
   }>({});
 
   useScrollReveal();
@@ -48,19 +58,42 @@ export function RiskReportPage({ report }: RiskReportPageProps) {
     setIsVisible(true);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadReferenceSnapshot() {
+      const data = await getStormRiskFromSupabase(report.zip_code);
+      if (!isMounted || !data) return;
+
+      setReferenceSnapshot({
+        lat: data.lat,
+        lon: data.lon,
+        risk_components: {
+          distance_to_coast: data.risk_components?.distance_to_coast,
+        },
+      });
+    }
+
+    loadReferenceSnapshot();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [report.zip_code]);
+
   const riskVideo = getRiskVideo(report.storm_score);
+  const technicalSnapshotLat = referenceSnapshot?.lat ?? report.lat;
+  const technicalSnapshotLon = referenceSnapshot?.lon ?? report.lon;
+  const distanceToCoastScore = referenceSnapshot?.risk_components?.distance_to_coast;
 
   const riskComponents = {
     hurricane_risk: report.hurricane_score,
     flood_risk: report.flood_score,
     coastal_exposure: report.coastal_score,
-    distance_to_coast: Math.min(5, Math.round((report.coastal_score + report.hurricane_score) / 2)),
+    distance_to_coast: distanceToCoastScore,
     fema_flood_zone: report.flood_score,
     hurricane_corridor: report.hurricane_score
   };
-
-  const lat = report.lat || 27.9506;
-  const lon = report.lon || -82.4572;
   const reportContext = {
     reportId: report.id,
     zipCode: report.zip_code,
@@ -77,9 +110,6 @@ export function RiskReportPage({ report }: RiskReportPageProps) {
     evidenceSnapshot: report.evidence_snapshot,
   };
 
-  console.log("Report coordinates - ZIP:", report.zip_code, "Lat:", report.lat, "Lon:", report.lon);
-  console.log("Using coordinates - Lat:", lat, "Lon:", lon);
-
   return (
     <>
       <div id="storm-report" className={`transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
@@ -88,29 +118,41 @@ export function RiskReportPage({ report }: RiskReportPageProps) {
           riskLevel={report.risk_level}
         />
 
-        <section className="border-b border-slate-200 bg-white">
-          <div className="mx-auto flex max-w-[1000px] flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                New Companion Experience
+        <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/85">
+          <div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+              <div
+                className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 shadow-sm sm:h-14 sm:w-14"
+                style={{
+                  background: 'linear-gradient(180deg, var(--ds-primary-900) 0%, var(--ds-primary-800) 100%)',
+                }}
+              >
+                <img
+                  src="/disaster-logo.png"
+                  alt="Disaster Shield"
+                  className="h-9 w-9 object-contain sm:h-10 sm:w-10"
+                />
               </div>
-              <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
-                Explore your report with an interactive companion
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-                Open the Companion to preview the new guided experience that will help interpret this report, personalize it to the property, and guide the next action.
-              </p>
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  Report Companion
+                </div>
+                <h2 className="text-sm font-bold leading-tight text-slate-900 sm:text-lg">
+                  Explore your report with an interactive companion
+                </h2>
+              </div>
             </div>
+
             <button
               type="button"
               onClick={() => setIsCompanionOpen(true)}
-              className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-slate-800 hover:shadow-xl sm:text-base"
+              className="ds-btn-primary inline-flex min-h-[48px] w-full flex-shrink-0 items-center justify-center gap-3 rounded-xl px-5 py-3 text-sm font-semibold sm:w-auto sm:px-6"
             >
               <MessageSquare className="h-5 w-5" />
               Open Report Companion
             </button>
           </div>
-        </section>
+        </header>
 
         <section className="py-12 sm:py-16 bg-slate-50">
           <div className="max-w-[1000px] mx-auto px-4 sm:px-6">
@@ -119,7 +161,7 @@ export function RiskReportPage({ report }: RiskReportPageProps) {
                 Video Explanation
               </h2>
               <p className="text-slate-600">
-                Understanding what your risk level means for your property
+                Understanding what this risk level means for the reported area and for inspection planning
               </p>
             </div>
 
@@ -136,7 +178,7 @@ export function RiskReportPage({ report }: RiskReportPageProps) {
               </div>
               <div className="p-6 bg-slate-50">
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Professional explanation of what your risk level means and the importance of proactive storm readiness inspection for Florida properties.
+                  Professional explanation of what this reported exposure level means and why a property-level storm readiness inspection can add the missing structural context.
                 </p>
               </div>
             </div>
@@ -145,8 +187,9 @@ export function RiskReportPage({ report }: RiskReportPageProps) {
 
         <TechnicalSnapshotSection
           zipCode={report.zip_code}
-          lat={lat}
-          lon={lon}
+          lat={technicalSnapshotLat}
+          lon={technicalSnapshotLon}
+          distanceToCoastScore={distanceToCoastScore}
           coastalScore={report.coastal_score}
           floodScore={report.flood_score}
         />
@@ -176,21 +219,21 @@ export function RiskReportPage({ report }: RiskReportPageProps) {
 
         <section className="py-12 sm:py-16 bg-gradient-to-b from-white to-slate-50">
           <div className="max-w-[1000px] mx-auto px-4 sm:px-6">
-            <div className="bg-slate-900 text-white rounded-2xl p-8 sm:p-12 text-center shadow-2xl">
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+            <div className="rounded-2xl p-7 text-center shadow-2xl sm:p-12" style={{ background: 'linear-gradient(180deg, var(--ds-primary-900) 0%, var(--ds-primary-800) 100%)', color: 'var(--ds-white)' }}>
+              <h2 className="mb-4 text-2xl font-bold sm:text-4xl">
                 Schedule Your Storm Readiness Inspection
               </h2>
-              <p className="text-lg mb-8 max-w-2xl mx-auto leading-relaxed text-slate-300">
+              <p className="mx-auto mb-8 max-w-2xl text-base leading-relaxed sm:text-lg" style={{ color: 'rgba(255,255,255,0.78)' }}>
                 Certified inspectors available throughout Florida. Most inspections completed in 45-60 minutes with comprehensive documentation provided.
               </p>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center justify-center gap-3 bg-white text-slate-900 px-10 py-5 min-h-[56px] rounded-xl text-lg font-bold hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl active:scale-95"
+                className="ds-btn-primary inline-flex min-h-[56px] w-full items-center justify-center gap-3 rounded-xl px-6 py-4 text-base font-bold active:scale-[0.99] sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
               >
-                <Calendar className="w-6 h-6" />
+                <BrandIconBadge icon={Calendar} size="sm" tone="accent" className="!h-9 !w-9 !rounded-full" />
                 Schedule Your Inspection
               </button>
-              <p className="text-sm mt-6 text-slate-400">
+              <p className="text-sm mt-6" style={{ color: 'rgba(255,255,255,0.62)' }}>
                 Professional. Comprehensive. Insurance-compliant.
               </p>
             </div>
@@ -230,6 +273,7 @@ export function RiskReportPage({ report }: RiskReportPageProps) {
             city: payload.city,
             zipCode: payload.zipCode,
             inspectionType: payload.inspectionType,
+            rationaleSummary: payload.rationaleSummary,
           });
           setIsModalOpen(true);
         }}

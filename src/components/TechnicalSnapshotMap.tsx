@@ -3,8 +3,8 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface TechnicalSnapshotMapProps {
-  lat: number;
-  lon: number;
+  lat?: number;
+  lon?: number;
   zipCode: string;
 }
 
@@ -15,7 +15,7 @@ export function TechnicalSnapshotMap({ lat, lon, zipCode }: TechnicalSnapshotMap
   const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!mapContainer.current || typeof lat !== 'number' || typeof lon !== 'number') return;
 
     const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
     if (!mapboxToken || mapboxToken.includes('Dummy')) {
@@ -60,7 +60,7 @@ export function TechnicalSnapshotMap({ lat, lon, zipCode }: TechnicalSnapshotMap
         .setLngLat([lon, lat])
         .setPopup(
           new mapboxgl.Popup({ offset: 25 })
-            .setHTML(`<div style="padding: 8px;"><strong>ZIP ${zipCode}</strong></div>`)
+            .setHTML(`<div style="padding: 8px;"><strong>ZIP ${zipCode} reference point</strong></div>`)
         )
         .addTo(map.current);
 
@@ -78,7 +78,7 @@ export function TechnicalSnapshotMap({ lat, lon, zipCode }: TechnicalSnapshotMap
         marker.current.setLngLat([lon, lat]);
         marker.current.setPopup(
           new mapboxgl.Popup({ offset: 25 })
-            .setHTML(`<div style="padding: 8px;"><strong>ZIP ${zipCode}</strong></div>`)
+            .setHTML(`<div style="padding: 8px;"><strong>ZIP ${zipCode} reference point</strong></div>`)
         );
       }
     }
@@ -91,6 +91,19 @@ export function TechnicalSnapshotMap({ lat, lon, zipCode }: TechnicalSnapshotMap
       }
     };
   }, [lat, lon, zipCode]);
+
+  if (typeof lat !== 'number' || typeof lon !== 'number') {
+    return (
+      <div className="flex h-full min-h-[400px] items-center justify-center rounded-xl bg-slate-100 p-6 text-center">
+        <div className="max-w-xs">
+          <div className="text-sm font-semibold text-slate-900">ZIP reference point unavailable</div>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            We could not load ZIP-level reference coordinates for this report, so the technical map is hidden instead of showing a misleading fallback.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -56,7 +56,7 @@ export function EngineeringInterpretationSection({ riskLevel }: EngineeringInter
             Engineering Interpretation
           </h2>
           <p className="text-slate-600">
-            Professional analysis of your property's storm risk profile
+            Professional interpretation of the reported area's storm exposure and what it suggests for inspection planning
           </p>
         </div>
 

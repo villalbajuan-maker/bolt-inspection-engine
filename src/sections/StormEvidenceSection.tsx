@@ -1,7 +1,8 @@
-import { FileText, AlertCircle, Droplets, ExternalLink } from 'lucide-react';
+import { FileText, AlertCircle, Droplets } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { buildFloodProfile, buildStormEvidenceSnapshot, buildWindProfile, StormEvidenceSnapshot } from '../api/stormEvidence';
 import { getLocationContextFromCoordinates, LocationContext } from '../api/riskData';
+import { LandingStormIntelligenceCard } from '../components/LandingStormIntelligenceCard';
 
 interface StormEvidenceSectionProps {
   city?: string;
@@ -76,27 +77,33 @@ export function StormEvidenceSection({
     snapshot?.cards ||
     [
       {
+        kind: 'verified_signal' as const,
         title: 'Verified Regional Signal',
         description: `No recent verified local article was found for ${fallbackLocationLabel} at render time, so this section falls back to geographic risk evidence instead of inventing a local event.`,
         source: 'Live public reporting',
         imageUrl: '/storm-risk-report-hero.png',
+        status: 'fallback' as const,
         headline: null,
       },
       {
-        title: 'Wind & Hurricane Profile',
+        kind: 'wind_map' as const,
+        title: 'Hurricane Track & Wind Exposure',
         description: buildWindProfile(resolvedCity, zipCode, stormScore, hurricaneScore, coastalScore),
         source: 'Geographic risk model',
-        imageUrl: '/hero-home-storm.png',
+        imageUrl: 'https://www.nhc.noaa.gov/xgtwo/two_atl_7d0.png',
+        status: 'live_map' as const,
       },
       {
-        title: 'Flood & Water Intrusion Profile',
+        kind: 'flood_map' as const,
+        title: 'Flood & Coastal Exposure',
         description: buildFloodProfile(fallbackLocationLabel, floodScore, coastalScore),
         source: 'Flood and coastal exposure indicators',
         imageUrl: '/storm-readiness-inspection.png',
+        status: 'live_map' as const,
       },
     ];
   const locationLabel = snapshot?.locationLabel || fallbackLocationLabel;
-  const iconMap = [<AlertCircle className="w-6 h-6" />, <FileText className="w-6 h-6" />, <Droplets className="w-6 h-6" />];
+  const iconMap = [AlertCircle, FileText, Droplets];
 
   return (
     <section className="py-12 sm:py-16 bg-slate-50">
@@ -112,91 +119,25 @@ export function StormEvidenceSection({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 scroll-reveal">
           {evidenceCards.map((card, index) => {
+            const Icon = iconMap[index] || AlertCircle;
+            const normalizedCard = {
+              kind: card.kind ?? (index === 0 ? 'verified_signal' : index === 1 ? 'wind_map' : 'flood_map'),
+              title: card.title,
+              summary: card.description,
+              source: card.source,
+              imageUrl: card.imageUrl,
+              status: card.status ?? (index === 0 ? 'fallback' : 'live_map'),
+              headline: card.headline?.title,
+              url: card.headline?.url,
+            } as const;
+
             return (
-              <div
-                key={index}
-                className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="aspect-[4/3] overflow-hidden bg-slate-200 relative">
-                  {loading ? (
-                    <div className="w-full h-full bg-slate-300 animate-pulse" />
-                  ) : (
-                    <img
-                      src={card.imageUrl}
-                      alt={card.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.src = '/storm-risk-preview.png';
-                      }}
-                    />
-                  )}
-                </div>
-
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="text-slate-700">{iconMap[index]}</div>
-                    <h3 className="text-lg font-bold text-slate-900">{card.title}</h3>
-                  </div>
-
-                  <p className="text-sm text-slate-600 leading-relaxed mb-4">
-                    {card.description}
-                  </p>
-
-                  <div className="pt-4 border-t border-slate-200 mb-4">
-                    <p className="text-xs text-slate-500 font-medium">
-                      Source: {card.source}
-                    </p>
-                  </div>
-
-                  {card.headline && !loading && (
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <div className="mb-3">
-                        <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                          Verified Public Report
-                        </div>
-                        <p className="text-sm text-slate-900 leading-relaxed font-medium mb-2">
-                          "{card.headline.title}"
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-                        <p className="text-xs text-slate-600">
-                          Source: {card.headline.source}
-                        </p>
-                        {card.headline.url && (
-                          <a
-                            href={card.headline.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 transition-colors"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {!card.headline && !loading && index === 0 && (
-                    <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                      <div className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">
-                        No Verified Article Found
-                      </div>
-                      <p className="text-sm text-amber-900 leading-relaxed">
-                        We could not verify a recent local article specific to this location, so this report relies on geographic risk indicators rather than synthetic news copy.
-                      </p>
-                    </div>
-                  )}
-
-                  {loading && (
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <div className="animate-pulse">
-                        <div className="h-3 bg-slate-200 rounded mb-2"></div>
-                        <div className="h-3 bg-slate-200 rounded w-3/4"></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+              <div key={index}>
+                <LandingStormIntelligenceCard
+                  card={normalizedCard}
+                  icon={Icon}
+                  loading={loading}
+                />
               </div>
             );
           })}

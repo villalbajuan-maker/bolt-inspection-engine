@@ -38,11 +38,15 @@ export function HeroSection({ onCheckRisk }: HeroSectionProps) {
           transition: 'transform 0.1s linear'
         }}
       >
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-white leading-tight mb-6">
+        <div className="ds-kicker text-white/80 mb-5">
+          Florida Storm Intelligence
+        </div>
+
+        <h1 className="ds-display-title text-4xl sm:text-5xl lg:text-6xl text-white mb-6">
           Understand Your Home's Storm Risk Before the Next Hurricane Season
         </h1>
 
-        <p className="text-base sm:text-lg text-white/90 leading-relaxed mb-8">
+        <p className="ds-lead text-base sm:text-xl text-white/90 mb-8">
           Check your Storm Risk Score and see how exposed your property may be to hurricane and flood damage.
         </p>
 

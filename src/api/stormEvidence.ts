@@ -3,13 +3,17 @@ export interface StormHeadline {
   source: string;
   url?: string;
   image?: string;
+  publishedAt?: string;
+  severity?: string;
 }
 
 export interface StormEvidenceCardSnapshot {
+  kind?: 'verified_signal' | 'wind_map' | 'flood_map';
   title: string;
   description: string;
   source: string;
   imageUrl: string;
+  status?: 'verified' | 'fallback' | 'live_map';
   headline?: StormHeadline | null;
 }
 
@@ -25,31 +29,33 @@ interface FetchVerifiedStormHeadlineParams {
   county?: string;
   state?: string;
   zipCode: string;
+  locationLabel?: string;
 }
 
-const HAZARD_KEYWORDS = [
-  'hurricane',
-  'storm',
-  'flood',
-  'flooding',
-  'surge',
-  'wind',
-  'tropical',
-  'rain',
-  'weather',
-];
+type NwsAlertFeature = {
+  id: string;
+  properties: {
+    event?: string;
+    headline?: string;
+    description?: string;
+    instruction?: string;
+    severity?: string;
+    urgency?: string;
+    certainty?: string;
+    senderName?: string;
+    sent?: string;
+    effective?: string;
+    onset?: string;
+    web?: string;
+    areaDesc?: string;
+  };
+};
 
-const IMPACT_KEYWORDS = [
-  'damage',
-  'damages',
-  'damaged',
-  'claims',
-  'emergency',
-  'warning',
-  'evacuation',
-  'roof',
-  'insurance',
-];
+type NwsAlertsResponse = {
+  features?: NwsAlertFeature[];
+};
+
+const NWS_USER_AGENT = 'villalbajuan-maker/bolt-inspection-engine';
 
 interface BuildStormEvidenceSnapshotParams {
   city?: string;
@@ -98,82 +104,119 @@ export function buildFloodProfile(locationLabel: string, floodScore: number, coa
   return `${locationLabel} shows a ${floodBand} flood profile. Even where flooding is not the dominant hazard, rainfall accumulation, drainage performance and building-envelope condition still shape real storm losses.`;
 }
 
-function articleMatchesIntent(article: StormHeadline, city?: string, county?: string, state?: string): boolean {
-  const haystack = `${article.title} ${article.source}`.toLowerCase();
-  const mentionsHazard = HAZARD_KEYWORDS.some((keyword) => haystack.includes(keyword));
-  const mentionsImpact = IMPACT_KEYWORDS.some((keyword) => haystack.includes(keyword));
-  const mentionsCity = city ? haystack.includes(city.toLowerCase()) : true;
-  const mentionsCounty = county ? haystack.includes(county.toLowerCase().replace(' county', '')) : false;
-  const mentionsState = state ? haystack.includes(state.toLowerCase()) : true;
-
-  return mentionsHazard && mentionsState && (mentionsImpact || mentionsCity || mentionsCounty);
+function severityRank(severity?: string) {
+  if (severity === 'Extreme') return 4;
+  if (severity === 'Severe') return 3;
+  if (severity === 'Moderate') return 2;
+  if (severity === 'Minor') return 1;
+  return 0;
 }
 
-async function fetchHeadlineCandidates(query: string, max: number = 3): Promise<StormHeadline[]> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const url = `${supabaseUrl}/functions/v1/fetch-storm-news?q=${encodeURIComponent(query)}&max=${max}`;
+function toTimestamp(value?: string) {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
 
+async function fetchNwsAlerts(url: string): Promise<NwsAlertFeature[]> {
   const response = await fetch(url, {
     method: 'GET',
     headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${supabaseAnonKey}`,
+      Accept: 'application/geo+json',
+      'User-Agent': NWS_USER_AGENT,
     },
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Storm news request failed: ${errorText}`);
+    throw new Error(`NWS alerts request failed: ${errorText}`);
   }
 
-  const data = await response.json();
+  const data: NwsAlertsResponse = await response.json();
+  return data.features || [];
+}
 
-  if (!data.articles || !Array.isArray(data.articles)) {
-    return [];
+function normalizeNwsAlert(feature: NwsAlertFeature): StormHeadline | null {
+  const props = feature.properties;
+  const title = props.headline || props.event;
+
+  if (!title) {
+    return null;
   }
 
-  return data.articles.map((article: any) => ({
-    title: article.title,
-    source: article.source?.name || 'News Source',
-    url: article.url,
-    image: article.image,
-  }));
+  return {
+    title,
+    source: props.senderName || 'National Weather Service',
+    url: props.web,
+    publishedAt: props.sent || props.effective || props.onset,
+    severity: props.severity,
+  };
+}
+
+function pickBestAlert(features: NwsAlertFeature[]): StormHeadline | null {
+  const normalized = features
+    .map(normalizeNwsAlert)
+    .filter((item): item is StormHeadline => Boolean(item));
+
+  normalized.sort((a, b) => {
+    const severityDelta = severityRank(b.severity) - severityRank(a.severity);
+    if (severityDelta !== 0) {
+      return severityDelta;
+    }
+
+    return toTimestamp(b.publishedAt) - toTimestamp(a.publishedAt);
+  });
+
+  return normalized[0] || null;
+}
+
+function isFloodOrCoastalAlert(feature: NwsAlertFeature) {
+  const props = feature.properties;
+  const haystack = `${props.event || ''} ${props.headline || ''} ${props.description || ''}`.toLowerCase();
+
+  return [
+    'flood',
+    'coastal flood',
+    'storm surge',
+    'high surf',
+    'rip current',
+    'inundation',
+  ].some((keyword) => haystack.includes(keyword));
+}
+
+function pickBestFloodAlert(features: NwsAlertFeature[]): StormHeadline | null {
+  return pickBestAlert(features.filter(isFloodOrCoastalAlert));
+}
+
+function buildNoaaFloridaFloodMapImageUrl() {
+  const params = new URLSearchParams({
+    bbox: '-87.75,24.30,-79.80,31.10',
+    bboxSR: '4326',
+    imageSR: '4326',
+    size: '1200,720',
+    format: 'png32',
+    transparent: 'false',
+    layers: 'show:6',
+    f: 'image',
+  });
+
+  return `https://coast.noaa.gov/arcgis/rest/services/FloodExposureMapper/CFEM_CoastalFloodHazardComposite/MapServer/export?${params.toString()}`;
 }
 
 export async function fetchVerifiedStormHeadline({
-  city,
-  county,
   state,
-  zipCode,
+  locationLabel,
 }: FetchVerifiedStormHeadlineParams): Promise<StormHeadline | null> {
-  const stateLabel = state || 'Florida';
-  const countyLabel = county ? county.replace(/ county$/i, '') : undefined;
-  const locationQueries = [
-    city ? `"${city}" "${stateLabel}" hurricane damage homes` : null,
-    city ? `"${city}" "${stateLabel}" flooding residential` : null,
-    countyLabel ? `"${countyLabel} County" "${stateLabel}" storm damage` : null,
-    countyLabel ? `"${countyLabel} County" "${stateLabel}" flooding homes` : null,
-    `"${zipCode}" "${stateLabel}" hurricane`,
-    `"${zipCode}" "${stateLabel}" flood`,
-    `"${stateLabel}" hurricane damage residential`,
-  ].filter((query): query is string => Boolean(query));
-
   try {
-    for (const query of locationQueries) {
-      const candidates = await fetchHeadlineCandidates(query, 3);
-      const preciseMatch = candidates.find((article) =>
-        articleMatchesIntent(article, city, county, state)
-      );
+    const stateCode = state && state.toLowerCase() === 'florida' ? 'FL' : 'FL';
+    const activeAlerts = await fetchNwsAlerts(`https://api.weather.gov/alerts/active?area=${stateCode}`);
+    const bestActiveAlert = pickBestAlert(activeAlerts);
+    if (bestActiveAlert) return bestActiveAlert;
 
-      if (preciseMatch) {
-        return preciseMatch;
-      }
-    }
-
-    return null;
+    const recentAlerts = await fetchNwsAlerts(`https://api.weather.gov/alerts?area=${stateCode}&limit=20`);
+    return pickBestAlert(recentAlerts);
   } catch (error) {
-    console.error('[Storm Evidence] Failed to fetch verified regional headline:', error);
+    console.error(`[Storm Evidence] Failed to fetch verified official signal for ${locationLabel || state || 'Florida'}:`, error);
     return null;
   }
 }
@@ -200,7 +243,27 @@ export async function buildStormEvidenceSnapshot({
     county,
     state,
     zipCode,
+    locationLabel,
   });
+
+  let floodHeadline: StormHeadline | null = null;
+  try {
+    const activeAlerts = await fetchNwsAlerts('https://api.weather.gov/alerts/active?area=FL');
+    floodHeadline = pickBestFloodAlert(activeAlerts);
+    if (!floodHeadline) {
+      const recentAlerts = await fetchNwsAlerts('https://api.weather.gov/alerts?area=FL&limit=20');
+      floodHeadline = pickBestFloodAlert(recentAlerts);
+    }
+  } catch (error) {
+    console.error('[Storm Evidence] Failed to fetch flood/coastal official context:', error);
+  }
+
+  const dedupedFloodHeadline =
+    headline && floodHeadline &&
+    ((headline.title.trim().toLowerCase() === floodHeadline.title.trim().toLowerCase()) ||
+      (headline.url && floodHeadline.url && headline.url.trim().toLowerCase() === floodHeadline.url.trim().toLowerCase()))
+      ? null
+      : floodHeadline;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -208,25 +271,36 @@ export async function buildStormEvidenceSnapshot({
     countyLabel: resolvedCountyLabel,
     cards: [
       {
+        kind: 'verified_signal',
         title: 'Verified Regional Signal',
         description: headline
-          ? `We found a recent public report tied to storm, flood, or damage language around ${locationLabel}.`
-          : `No recent verified local article was found for ${locationLabel} at render time, so this section falls back to geographic risk evidence instead of inventing a local event.`,
-        source: headline ? headline.source : 'Live public reporting',
-        imageUrl: headline?.image || '/storm-risk-report-hero.png',
+          ? `An official National Weather Service signal was identified for the broader Florida context around ${locationLabel}.`
+          : `No recent verified official signal was found for ${locationLabel} at render time, so this section falls back to geographic risk evidence instead of inventing a local event.`,
+        source: headline ? headline.source : 'National Weather Service',
+        imageUrl: '/storm-risk-report-hero.png',
+        status: headline ? 'verified' : 'fallback',
         headline,
       },
       {
-        title: 'Wind & Hurricane Profile',
-        description: buildWindProfile(city, zipCode, stormScore, hurricaneScore, coastalScore),
-        source: resolvedCountyLabel ? `Geographic risk model for ${resolvedCountyLabel}` : 'Geographic risk model',
-        imageUrl: '/hero-home-storm.png',
+        kind: 'wind_map',
+        title: 'Hurricane Track & Wind Exposure',
+        description: `${buildWindProfile(city, zipCode, stormScore, hurricaneScore, coastalScore)} This map uses the official National Hurricane Center Atlantic Tropical Weather Outlook to add current basin-wide wind and hurricane context.`,
+        source: 'National Hurricane Center Atlantic Tropical Weather Outlook',
+        imageUrl: 'https://www.nhc.noaa.gov/xgtwo/two_atl_7d0.png',
+        status: 'live_map',
       },
       {
-        title: 'Flood & Water Intrusion Profile',
-        description: buildFloodProfile(locationLabel, floodScore, coastalScore),
-        source: resolvedCountyLabel ? `Flood and coastal indicators for ${resolvedCountyLabel}` : 'Flood and coastal exposure indicators',
-        imageUrl: '/storm-readiness-inspection.png',
+        kind: 'flood_map',
+        title: 'Flood & Coastal Exposure',
+        description: dedupedFloodHeadline
+          ? `${buildFloodProfile(locationLabel, floodScore, coastalScore)} This map anchors on NOAA's Coastal Flood Exposure Mapper and adds current official flood or coastal alert context when available.`
+          : `${buildFloodProfile(locationLabel, floodScore, coastalScore)} This map anchors on NOAA's Coastal Flood Exposure Mapper without repeating the same official signal already highlighted above.`,
+        source: dedupedFloodHeadline
+          ? 'NOAA Coastal Flood Exposure Mapper + National Weather Service alerts'
+          : 'NOAA Coastal Flood Exposure Mapper',
+        imageUrl: buildNoaaFloridaFloodMapImageUrl(),
+        status: 'live_map',
+        headline: dedupedFloodHeadline,
       },
     ],
   };

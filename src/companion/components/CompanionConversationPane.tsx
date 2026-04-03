@@ -1,15 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { CompanionMessageList } from './CompanionMessageList';
-import { CompanionPromptGrid } from './CompanionPromptGrid';
 import type { CompanionMessage, CompanionRecommendation, CompanionSessionContext, CompanionStage, RequestedField } from '../domain/companion.types';
-import { RecommendationCard } from './cards/RecommendationCard';
-import { EvidenceListCard } from './cards/EvidenceListCard';
-import { WhatChangedCard } from './cards/WhatChangedCard';
 import { PersonalizationProgress } from './personalization/PersonalizationProgress';
-import { PersonalizationMilestoneCard } from './personalization/PersonalizationMilestoneCard';
 import { PersonalizationStepRenderer } from './personalization/PersonalizationStepRenderer';
 import type { StormEvidenceSnapshot } from '../../api/stormEvidence';
 import { StageBanner } from './StageBanner';
+import { SuggestedReplies } from './SuggestedReplies';
+import { MilestoneInline } from './attachments/MilestoneInline';
+import { PropertyPreviewInline } from './attachments/PropertyPreviewInline';
+import { WhatChangedInline } from './attachments/WhatChangedInline';
 
 type CompanionConversationPaneProps = {
   stage: CompanionStage;
@@ -27,8 +26,10 @@ type CompanionConversationPaneProps = {
   isThinking?: boolean;
   isError?: boolean;
   errorMessage?: string;
+  activeCTA?: CompanionSessionContext['activeCTA'];
   onSelectPrompt?: (prompt: string) => void;
   onSubmitField?: (field: RequestedField, value: string | string[]) => void;
+  onCTA?: (cta: NonNullable<CompanionSessionContext['activeCTA']>) => void;
 };
 
 export function CompanionConversationPane({
@@ -47,12 +48,18 @@ export function CompanionConversationPane({
   isThinking = false,
   isError = false,
   errorMessage,
+  activeCTA,
   onSelectPrompt,
   onSubmitField,
+  onCTA,
 }: CompanionConversationPaneProps) {
   const activeRequestedField = requestedFields[0];
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const promptLabel =
+    requestedFields.length > 0 ? 'Suggested answers' : 'Suggested replies';
+  const promptLimit = stage === 'welcome' ? 3 : 2;
+  const visiblePrompts = suggestedPrompts.slice(0, promptLimit);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -72,11 +79,19 @@ export function CompanionConversationPane({
     <div className="flex h-full flex-col">
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6"
+        className="flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-7"
       >
-        <CompanionMessageList messages={messages} />
+        <CompanionMessageList
+          messages={messages}
+          stage={stage}
+          sourceMode={sourceMode}
+          evidenceSnapshot={evidenceSnapshot}
+          recommendation={recommendation}
+          activeCTA={activeCTA}
+          onCTA={onCTA}
+        />
 
-        <div className="mt-6">
+        <div className="mt-4">
           <StageBanner
             stage={stage}
             sourceMode={sourceMode}
@@ -86,33 +101,42 @@ export function CompanionConversationPane({
         </div>
 
         {isThinking && (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
             The Companion is preparing the next response...
           </div>
         )}
 
         {isError && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {errorMessage || 'Something went wrong while loading the Companion.'}
           </div>
         )}
 
         {stage === 'welcome' && (
-          <div className="mt-6 space-y-4">
-            <CompanionPromptGrid prompts={suggestedPrompts} onSelectPrompt={onSelectPrompt} />
+          <div className="mt-5 space-y-3">
+            <SuggestedReplies
+              prompts={visiblePrompts}
+              onSelectPrompt={onSelectPrompt}
+              label={promptLabel}
+            />
           </div>
         )}
 
         {stage === 'interpret_report' && (
-          <div className="mt-6 space-y-4">
-            <CompanionPromptGrid prompts={suggestedPrompts} onSelectPrompt={onSelectPrompt} />
+          <div className="mt-5 space-y-3">
+            <SuggestedReplies
+              prompts={visiblePrompts}
+              onSelectPrompt={onSelectPrompt}
+              label={promptLabel}
+            />
           </div>
         )}
 
         {stage === 'personalize_property' && (
-          <div className="mt-6 space-y-4">
+          <div className="mt-5 space-y-3">
             <PersonalizationProgress completionScore={completionScore} />
-            <PersonalizationMilestoneCard personalization={personalization} />
+            <MilestoneInline personalization={personalization} />
+            <PropertyPreviewInline personalization={personalization} />
 
             <PersonalizationStepRenderer
               field={activeRequestedField}
@@ -120,25 +144,28 @@ export function CompanionConversationPane({
               onSubmitField={(field, value) => onSubmitField?.(field, value)}
             />
 
-            <WhatChangedCard
+            <WhatChangedInline
               sourceMode={sourceMode}
               personalization={personalization}
             />
 
-            <CompanionPromptGrid prompts={suggestedPrompts} onSelectPrompt={onSelectPrompt} />
+            <SuggestedReplies
+              prompts={visiblePrompts}
+              onSelectPrompt={onSelectPrompt}
+              label={promptLabel}
+            />
           </div>
         )}
 
         {stage === 'recommend_action' && recommendation && (
-          <div className="mt-6 space-y-4">
-            <RecommendationCard recommendation={recommendation} sourceMode={sourceMode} />
-            <WhatChangedCard
+          <div className="mt-5 space-y-3">
+            <WhatChangedInline
               sourceMode={sourceMode}
               personalization={personalization}
               recommendation={recommendation}
             />
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                 Decision context
               </div>
@@ -147,15 +174,21 @@ export function CompanionConversationPane({
               </p>
             </div>
 
-            <CompanionPromptGrid prompts={suggestedPrompts} onSelectPrompt={onSelectPrompt} />
+            <SuggestedReplies
+              prompts={visiblePrompts}
+              onSelectPrompt={onSelectPrompt}
+              label={promptLabel}
+            />
           </div>
         )}
 
         {stage === 'live_intelligence' && (
-          <div className="mt-6 space-y-4">
-            <EvidenceListCard evidenceSnapshot={evidenceSnapshot} />
-
-            <CompanionPromptGrid prompts={suggestedPrompts} onSelectPrompt={onSelectPrompt} />
+          <div className="mt-5 space-y-3">
+            <SuggestedReplies
+              prompts={visiblePrompts}
+              onSelectPrompt={onSelectPrompt}
+              label={promptLabel}
+            />
           </div>
         )}
 

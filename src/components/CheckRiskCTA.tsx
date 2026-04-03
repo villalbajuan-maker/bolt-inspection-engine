@@ -46,14 +46,14 @@ export function CheckRiskCTA({ onCheckRisk, variant = 'default', className = '' 
               setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5));
               setError('');
             }}
-            className="flex-1 px-4 sm:px-6 py-3 sm:py-4 min-h-[44px] text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:border-slate-900 transition-colors"
+            className="ds-input flex-1 px-4 sm:px-6 py-3 sm:py-4 min-h-[44px] text-base rounded-xl"
             maxLength={5}
             disabled={loading}
           />
           <button
             type="submit"
             disabled={loading}
-            className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 min-h-[44px] bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap"
+            className="ds-btn-primary w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 min-h-[44px] font-semibold rounded-xl flex items-center justify-center gap-2 active:scale-[0.99] whitespace-nowrap"
           >
             {loading ? (
               <>
@@ -66,7 +66,7 @@ export function CheckRiskCTA({ onCheckRisk, variant = 'default', className = '' 
           </button>
         </form>
         {error && (
-          <p className="text-sm text-red-600 text-center mt-2">{error}</p>
+          <p className="text-sm text-center mt-2" style={{ color: 'var(--ds-danger)' }}>{error}</p>
         )}
       </div>
     );
@@ -84,14 +84,14 @@ export function CheckRiskCTA({ onCheckRisk, variant = 'default', className = '' 
               setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5));
               setError('');
             }}
-            className="w-full px-4 sm:px-6 py-3 sm:py-4 min-h-[44px] text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:border-slate-900 transition-colors text-center"
+            className="ds-input w-full px-4 sm:px-6 py-3 sm:py-4 min-h-[44px] text-base rounded-xl text-center"
             maxLength={5}
             disabled={loading}
           />
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-6 sm:px-8 py-3 sm:py-4 min-h-[44px] bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+            className="ds-btn-primary w-full px-6 sm:px-8 py-3 sm:py-4 min-h-[44px] font-semibold rounded-xl flex items-center justify-center gap-2 active:scale-[0.99]"
           >
             {loading ? (
               <>
@@ -104,7 +104,7 @@ export function CheckRiskCTA({ onCheckRisk, variant = 'default', className = '' 
           </button>
         </form>
         {error && (
-          <p className="text-sm text-red-600 text-center mt-2">{error}</p>
+          <p className="text-sm text-center mt-2" style={{ color: 'var(--ds-danger)' }}>{error}</p>
         )}
       </div>
     );
@@ -121,14 +121,14 @@ export function CheckRiskCTA({ onCheckRisk, variant = 'default', className = '' 
             setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5));
             setError('');
           }}
-          className="w-full px-4 sm:px-6 py-3 sm:py-4 min-h-[44px] text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:border-slate-900 transition-colors"
+          className="ds-input w-full px-4 sm:px-6 py-3 sm:py-4 min-h-[44px] text-base rounded-xl"
           maxLength={5}
           disabled={loading}
         />
         <button
           type="submit"
           disabled={loading}
-          className="w-full px-6 sm:px-8 py-3 sm:py-4 min-h-[44px] bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+          className="ds-btn-primary w-full px-6 sm:px-8 py-3 sm:py-4 min-h-[44px] font-semibold rounded-xl flex items-center justify-center gap-2 active:scale-[0.99]"
         >
           {loading ? (
             <>
@@ -141,7 +141,7 @@ export function CheckRiskCTA({ onCheckRisk, variant = 'default', className = '' 
         </button>
       </form>
       {error && (
-        <p className="text-sm text-red-600 text-center mt-2">{error}</p>
+        <p className="text-sm text-center mt-2" style={{ color: 'var(--ds-danger)' }}>{error}</p>
       )}
     </div>
   );
