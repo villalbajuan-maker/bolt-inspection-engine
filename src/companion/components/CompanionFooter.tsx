@@ -38,7 +38,7 @@ export function CompanionFooter({
     resetTranscript,
   } = useSpeechToText();
   const isListening = speechState === 'listening';
-  const currentVoiceText = transcript.trim() || interimTranscript.trim();
+  const currentVoiceText = [transcript.trim(), interimTranscript.trim()].filter(Boolean).join(' ').trim();
   const hasVoiceDraft = Boolean(currentVoiceText);
 
   useEffect(() => {

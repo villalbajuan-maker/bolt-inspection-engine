@@ -79,6 +79,7 @@ function getErrorMessage(errorCode?: string) {
 export function useSpeechToText(language = 'en-US'): UseSpeechToTextResult {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const shouldResumeListeningRef = useRef(false);
+  const isRestartingRef = useRef(false);
   const [state, setState] = useState<SpeechState>(() =>
     getSpeechRecognitionConstructor() ? 'idle' : 'unsupported'
   );
@@ -103,32 +104,34 @@ export function useSpeechToText(language = 'en-US'): UseSpeechToTextResult {
 
     recognition.onstart = () => {
       setError(undefined);
-      setTranscript('');
-      setInterimTranscript('');
-      setElapsedSeconds(0);
+      if (isRestartingRef.current) {
+        isRestartingRef.current = false;
+      } else {
+        setTranscript('');
+        setInterimTranscript('');
+        setElapsedSeconds(0);
+      }
       setState('listening');
     };
 
     recognition.onresult = (event) => {
-      let nextInterim = '';
-      let nextFinal = '';
+      const finalChunks: string[] = [];
+      const interimChunks: string[] = [];
 
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      for (let i = 0; i < event.results.length; i += 1) {
         const result = event.results[i];
         const chunk = result?.[0]?.transcript?.trim();
         if (!chunk) continue;
 
         if (result.isFinal) {
-          nextFinal = `${nextFinal} ${chunk}`.trim();
+          finalChunks.push(chunk);
         } else {
-          nextInterim = `${nextInterim} ${chunk}`.trim();
+          interimChunks.push(chunk);
         }
       }
 
-      if (nextFinal) {
-        setTranscript((current) => `${current} ${nextFinal}`.trim());
-      }
-      setInterimTranscript(nextInterim);
+      setTranscript(finalChunks.join(' ').trim());
+      setInterimTranscript(interimChunks.join(' ').trim());
     };
 
     recognition.onerror = (event) => {
@@ -142,9 +145,11 @@ export function useSpeechToText(language = 'en-US'): UseSpeechToTextResult {
 
       if (shouldResumeListeningRef.current) {
         try {
+          isRestartingRef.current = true;
           recognition.start();
           return;
         } catch (_error) {
+          isRestartingRef.current = false;
           // If restart fails, fall through to idle so the user is not trapped.
         }
       }
@@ -202,11 +207,13 @@ export function useSpeechToText(language = 'en-US'): UseSpeechToTextResult {
 
   const stopListening = useCallback(() => {
     shouldResumeListeningRef.current = false;
+    isRestartingRef.current = false;
     recognitionRef.current?.stop();
   }, []);
 
   const resetTranscript = useCallback(() => {
     shouldResumeListeningRef.current = false;
+    isRestartingRef.current = false;
     setTranscript('');
     setInterimTranscript('');
     setElapsedSeconds(0);
