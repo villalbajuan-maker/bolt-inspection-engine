@@ -146,7 +146,9 @@ export function CompanionModal({ isOpen, onClose, reportContext, onOpenBooking }
           activeCTA={selectors.activeCTA}
           suppressCTA={selectors.activeStage === 'recommend_action'}
           onType={(value) => send({ type: 'USER_TYPED', value })}
-          onSubmit={() => send({ type: 'SUBMIT_MESSAGE', text: selectors.currentInput })}
+          onSubmit={(value) =>
+            send({ type: 'SUBMIT_MESSAGE', text: (value ?? selectors.currentInput).trim() })
+          }
           onCTA={(cta) => {
             if (cta.action === 'open_booking') {
               openBookingFromCompanion();

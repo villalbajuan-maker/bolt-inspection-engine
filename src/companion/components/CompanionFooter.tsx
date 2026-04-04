@@ -10,7 +10,7 @@ type CompanionFooterProps = {
   activeCTA?: CompanionCTA;
   suppressCTA?: boolean;
   onType?: (value: string) => void;
-  onSubmit?: () => void;
+  onSubmit?: (value?: string) => void;
   onCTA?: (cta: CompanionCTA) => void;
 };
 
@@ -66,6 +66,34 @@ export function CompanionFooter({
     }
   };
 
+  const transcribeAndSubmit = async () => {
+    if (!isRecording || disabled || isProcessing) {
+      return;
+    }
+
+    const audioBlob = await stopRecording();
+    if (!audioBlob) {
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      const { transcript } = await transcribeCompanionAudio(audioBlob);
+      onType?.(transcript);
+      setProcessing(false);
+
+      if (!transcript.trim()) {
+        return;
+      }
+
+      onSubmit?.(transcript);
+      reset();
+    } catch (_error) {
+      setProcessing(false);
+      reset();
+    }
+  };
+
   const clearVoiceDraft = () => {
     onType?.('');
     reset();
@@ -76,7 +104,7 @@ export function CompanionFooter({
       return;
     }
 
-    onSubmit?.();
+    onSubmit?.(currentInput);
     reset();
   };
 
@@ -124,7 +152,7 @@ export function CompanionFooter({
       : 'Start recording';
 
   const sendButtonTitle = isRecording
-    ? 'Finish recording first'
+    ? 'Transcribe and send'
     : isProcessing
       ? 'Transcribing audio'
       : 'Send message';
@@ -245,8 +273,8 @@ export function CompanionFooter({
           )}
           <button
             type="button"
-            disabled={disabled || isProcessing || isRecording || !currentInput.trim()}
-            onClick={() => void submitCurrentMessage()}
+            disabled={disabled || isProcessing || (!isRecording && !currentInput.trim())}
+            onClick={() => void (isRecording ? transcribeAndSubmit() : submitCurrentMessage())}
             title={sendButtonTitle}
             className="ds-btn-primary flex min-h-[42px] min-w-[42px] items-center justify-center rounded-full !p-0 shadow-[0_10px_24px_rgba(47,107,255,0.18)]"
             aria-label="Send message"
