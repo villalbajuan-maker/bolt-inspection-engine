@@ -121,30 +121,6 @@ export function useCompanionMachine({
           llmResponse,
         );
 
-        const needsDeterministicRecommendation =
-          deterministicHooks.stage === 'recommend_action' &&
-          !deterministicHooks.recommendation;
-
-        if (needsDeterministicRecommendation) {
-          const deterministicPayload = await resolveCompanionTurn(reportContext, context, text);
-          if (cancelled) return;
-
-          send({
-            type: 'AI_RESPONSE_SUCCESS',
-            payload: {
-              ...deterministicPayload,
-              assistantMessage: {
-                ...deterministicPayload.assistantMessage,
-                text: llmResponse.assistantMessage,
-              },
-              suggestedPrompts: llmResponse.suggestedReplies.length
-                ? llmResponse.suggestedReplies
-                : deterministicPayload.suggestedPrompts,
-            },
-          });
-          return;
-        }
-
         send({
           type: 'AI_RESPONSE_SUCCESS',
           payload: {

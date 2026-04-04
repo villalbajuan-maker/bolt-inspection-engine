@@ -428,21 +428,20 @@ export function buildLLMInterpretationPayload(
 ): CompanionInterpretationPayload {
   const now = new Date().toISOString();
   const requestedField = llmResponse.requestedField || undefined;
-  const stage =
-    requestedField || llmResponse.responseMode === 'personalize'
-      ? 'personalize_property'
-      : llmResponse.responseMode === 'recommend' || llmResponse.responseMode === 'handoff'
-        ? 'recommend_action'
-        : sessionContext.activeStage === 'live_intelligence'
-          ? 'live_intelligence'
-          : 'interpret_report';
+  const stage = requestedField
+    ? 'personalize_property'
+    : recommendation && (llmResponse.responseMode === 'recommend' || llmResponse.responseMode === 'handoff')
+      ? 'recommend_action'
+      : sessionContext.activeStage === 'welcome'
+        ? 'interpret_report'
+        : sessionContext.activeStage;
 
   const sourceMode =
-    stage === 'personalize_property' || stage === 'recommend_action'
+    requestedField
       ? 'personalized'
-      : sessionContext.activeStage === 'live_intelligence'
-        ? 'live'
-        : 'report';
+      : recommendation && stage === 'recommend_action'
+        ? 'personalized'
+        : sessionContext.sourceMode;
 
   const userMessage: CompanionMessage = {
     id: `user-${Date.now()}`,
@@ -485,7 +484,7 @@ export function buildLLMInterpretationPayload(
 }
 
 export function applyDeterministicResponseHooks(
-  reportContext: CompanionReportContext,
+  _reportContext: CompanionReportContext,
   sessionContext: CompanionSessionContext,
   llmResponse: CompanionChatResponse
 ): {
@@ -495,32 +494,20 @@ export function applyDeterministicResponseHooks(
   recommendation?: CompanionRecommendation;
   cta?: CompanionCTA;
 } {
-  const enoughContext = hasEnoughContextForRecommendation(reportContext, sessionContext);
-  const nextRequestedField = getNextRequestedField(sessionContext);
+  const currentStage =
+    sessionContext.activeStage === 'welcome'
+      ? 'interpret_report'
+      : sessionContext.activeStage;
+  const currentSourceMode =
+    sessionContext.activeStage === 'welcome'
+      ? 'report'
+      : sessionContext.sourceMode;
   const hasRecommendation = Boolean(sessionContext.recommendation);
-  const shouldMoveToRecommendation =
-    enoughContext &&
-    (
-      llmResponse.responseMode === 'recommend' ||
-      llmResponse.responseMode === 'handoff' ||
-      llmResponse.showRecommendation ||
-      llmResponse.showBookingCTA ||
-      hasRecommendation
-    );
-
-  if (shouldMoveToRecommendation) {
-    const recommendation = sessionContext.recommendation || buildRecommendation(reportContext, sessionContext);
-    return {
-      stage: 'recommend_action',
-      sourceMode: 'personalized',
-      requestedFields: [],
-      recommendation,
-      cta: {
-        label: 'Schedule My Inspection',
-        action: 'open_booking',
-      },
-    };
-  }
+  const wantsRecommendation =
+    llmResponse.responseMode === 'recommend' ||
+    llmResponse.responseMode === 'handoff' ||
+    llmResponse.showRecommendation;
+  const wantsBooking = llmResponse.showBookingCTA || llmResponse.responseMode === 'handoff';
 
   if (llmResponse.requestedField) {
     return {
@@ -530,29 +517,32 @@ export function applyDeterministicResponseHooks(
     };
   }
 
-  if (
-    llmResponse.responseMode === 'personalize' &&
-    nextRequestedField &&
-    !enoughContext
-  ) {
+  if (wantsRecommendation && hasRecommendation) {
     return {
-      stage: 'personalize_property',
+      stage: 'recommend_action',
       sourceMode: 'personalized',
-      requestedFields: [nextRequestedField],
+      requestedFields: [],
+      recommendation: sessionContext.recommendation,
+      cta: wantsBooking
+        ? {
+            label: 'Schedule My Inspection',
+            action: 'open_booking',
+          }
+        : undefined,
     };
   }
 
-  if (sessionContext.activeStage === 'live_intelligence') {
+  if (llmResponse.responseMode === 'personalize') {
     return {
-      stage: 'live_intelligence',
-      sourceMode: 'live',
+      stage: 'personalize_property',
+      sourceMode: 'personalized',
       requestedFields: [],
     };
   }
 
   return {
-    stage: 'interpret_report',
-    sourceMode: 'report',
+    stage: currentStage,
+    sourceMode: currentSourceMode,
     requestedFields: [],
   };
 }
