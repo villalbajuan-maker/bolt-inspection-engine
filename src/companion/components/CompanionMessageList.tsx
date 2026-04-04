@@ -35,9 +35,9 @@ export function CompanionMessageList({
     .find((message) => message.role === 'assistant')?.id;
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-4.5">
       {messages.map((message) => (
-        <div key={message.id}>
+        <div key={message.id} className="space-y-2">
           <CompanionMessageBubble message={message} />
 
           {message.id === lastAssistantMessageId && stage === 'live_intelligence' && (

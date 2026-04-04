@@ -3,5 +3,5 @@ type ChatPreviewCardProps = {
 };
 
 export function ChatPreviewCard({ children }: ChatPreviewCardProps) {
-  return <div className="mt-2">{children}</div>;
+  return <div className="mt-1.5">{children}</div>;
 }

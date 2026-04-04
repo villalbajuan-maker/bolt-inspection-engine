@@ -111,11 +111,11 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                 }}
               >
                 <div className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--ds-accent-600)' }}>
-                  Companion handoff
+                  Continuing from the Companion
                 </div>
                 {initialFormData?.inspectionType && (
                   <div className="mt-2 text-sm font-semibold" style={{ color: 'var(--ds-primary-900)' }}>
-                    Recommended inspection: {initialFormData.inspectionType}
+                    We will carry over: {initialFormData.inspectionType}
                   </div>
                 )}
                 {initialFormData?.rationaleSummary && (
@@ -123,6 +123,9 @@ export function BookingModal({ isOpen, onClose, reportData, initialFormData }: B
                     {initialFormData.rationaleSummary}
                   </p>
                 )}
+                <p className="mt-2 text-xs leading-relaxed" style={{ color: 'var(--ds-gray-500)' }}>
+                  This keeps the same context the Companion already used, so you do not have to re-explain the recommendation from scratch.
+                </p>
               </div>
             )}
 

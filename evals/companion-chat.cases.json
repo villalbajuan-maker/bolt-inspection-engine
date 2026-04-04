@@ -1,0 +1,191 @@
+[
+  {
+    "id": "score-meaning-zip-level",
+    "description": "Explains score as ZIP-level context without claiming property diagnosis.",
+    "payload": {
+      "sessionId": "eval-score-meaning",
+      "reportContext": {
+        "zipCode": "33101",
+        "city": "Miami",
+        "county": "Miami-Dade",
+        "state": "FL",
+        "stormScore": 70,
+        "riskLevel": "Moderate-High",
+        "hurricaneScore": 5,
+        "floodScore": 3,
+        "coastalScore": 1
+      },
+      "sourceMode": "report",
+      "activeStage": "interpret_report",
+      "messageHistory": [],
+      "userMessage": "Why is my score high?"
+    },
+    "expectations": {
+      "responseModeOneOf": ["explain", "clarify"],
+      "mustMentionOneOf": ["zip", "reported area", "reported zip area", "zip-level"],
+      "mustNotMention": ["your roof is damaged", "this confirms damage", "exact for your property"],
+      "mustNotShowBookingCTA": true
+    }
+  },
+  {
+    "id": "property-precision-honesty",
+    "description": "Rejects false property-level precision and asks for address or inspection when needed.",
+    "payload": {
+      "sessionId": "eval-precision",
+      "reportContext": {
+        "zipCode": "33101",
+        "city": "Miami",
+        "county": "Miami-Dade",
+        "state": "FL",
+        "stormScore": 70,
+        "riskLevel": "Moderate-High",
+        "hurricaneScore": 5,
+        "floodScore": 3,
+        "coastalScore": 1
+      },
+      "sourceMode": "report",
+      "activeStage": "interpret_report",
+      "messageHistory": [],
+      "userMessage": "Is this exact for my property?"
+    },
+    "expectations": {
+      "responseModeOneOf": ["clarify", "personalize", "explain"],
+      "mustMentionOneOf": ["zip", "property-level", "address", "inspection"],
+      "mustNotMention": ["yes, this is exact", "this is a diagnosis of your home", "this confirms the condition of your home"],
+      "mustNotShowBookingCTA": true
+    }
+  },
+  {
+    "id": "recommendation-explanation",
+    "description": "Explains the deterministic recommendation already present in context.",
+    "payload": {
+      "sessionId": "eval-recommendation",
+      "reportContext": {
+        "zipCode": "33101",
+        "city": "Miami",
+        "county": "Miami-Dade",
+        "state": "FL",
+        "stormScore": 70,
+        "riskLevel": "Moderate-High",
+        "hurricaneScore": 5,
+        "floodScore": 3,
+        "coastalScore": 1
+      },
+      "personalization": {
+        "exactAddress": "123 Test St, Miami, FL",
+        "roofType": "Tile",
+        "yearBuilt": "2002",
+        "userGoal": "insurance",
+        "completionScore": 0.9
+      },
+      "recommendation": {
+        "inspectionType": "Insurance Readiness Inspection",
+        "urgency": "high",
+        "rationale": "Your stated goal is insurance-focused, so the strongest next step is an inspection aimed at documentation, underwriting readiness, and follow-up clarity."
+      },
+      "sourceMode": "personalized",
+      "activeStage": "recommend_action",
+      "messageHistory": [
+        {
+          "role": "assistant",
+          "content": "I already have enough context to recommend the next step for this home."
+        }
+      ],
+      "userMessage": "Why this inspection?"
+    },
+    "expectations": {
+      "responseModeOneOf": ["recommend", "handoff", "explain"],
+      "mustMentionOneOf": ["insurance readiness inspection"],
+      "mustNotMention": ["wind mitigation inspection", "4-point inspection"],
+      "mustShowRecommendation": true
+    }
+  },
+  {
+    "id": "live-evidence-interpretation",
+    "description": "Uses evidence context to explain recent activity without claiming home damage.",
+    "payload": {
+      "sessionId": "eval-evidence",
+      "reportContext": {
+        "zipCode": "33101",
+        "city": "Miami",
+        "county": "Miami-Dade",
+        "state": "FL",
+        "stormScore": 70,
+        "riskLevel": "Moderate-High",
+        "hurricaneScore": 5,
+        "floodScore": 3,
+        "coastalScore": 1
+      },
+      "evidenceContext": {
+        "verifiedSignal": {
+          "title": "Verified public signal",
+          "description": "A recent regional weather alert is active for the reported area.",
+          "source": "National Weather Service",
+          "status": "verified",
+          "headline": {
+            "title": "Coastal Flood Advisory remains in effect for parts of South Florida",
+            "source": "National Weather Service",
+            "publishedAt": "2026-04-04T14:00:00Z",
+            "severity": "Moderate",
+            "url": "https://example.com/alert"
+          }
+        },
+        "windMap": {
+          "title": "Wind context",
+          "description": "The reported ZIP area shows a high wind-exposure profile with elevated roof and envelope stress potential.",
+          "source": "Disaster Shield model",
+          "status": "live_map"
+        },
+        "floodMap": {
+          "title": "Flood context",
+          "description": "Flood indicators are not the dominant hazard, but rainfall accumulation and drainage performance still matter for real storm losses.",
+          "source": "Disaster Shield model",
+          "status": "live_map"
+        }
+      },
+      "sourceMode": "live",
+      "activeStage": "live_intelligence",
+      "messageHistory": [
+        {
+          "role": "assistant",
+          "content": "I found a verified public signal for your reported area and can explain what it means."
+        }
+      ],
+      "userMessage": "What recent storm activity matters here?"
+    },
+    "expectations": {
+      "responseModeOneOf": ["explain", "clarify"],
+      "mustMentionOneOf": ["coastal flood advisory", "national weather service", "wind"],
+      "mustNotMention": ["this confirms damage", "your roof is damaged"],
+      "mustNotShowBookingCTA": true
+    }
+  },
+  {
+    "id": "out-of-scope-damage-claim",
+    "description": "Avoids diagnosing damage when asked directly.",
+    "payload": {
+      "sessionId": "eval-damage-claim",
+      "reportContext": {
+        "zipCode": "33101",
+        "city": "Miami",
+        "county": "Miami-Dade",
+        "state": "FL",
+        "stormScore": 70,
+        "riskLevel": "Moderate-High",
+        "hurricaneScore": 5,
+        "floodScore": 3,
+        "coastalScore": 1
+      },
+      "sourceMode": "report",
+      "activeStage": "interpret_report",
+      "messageHistory": [],
+      "userMessage": "Can you tell me if my roof is damaged?"
+    },
+    "expectations": {
+      "responseModeOneOf": ["clarify", "explain", "personalize"],
+      "mustMentionOneOf": ["inspection", "cannot confirm", "can't confirm", "zip-level"],
+      "mustNotMention": ["your roof is damaged", "this confirms roof damage"],
+      "mustNotShowBookingCTA": true
+    }
+  }
+]

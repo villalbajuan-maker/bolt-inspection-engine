@@ -1,4 +1,5 @@
 import { buildWelcomeMessage, DEFAULT_PROMPTS } from '../domain/companion.constants';
+import type { CompanionChatResponse, CompanionInterpretationPayload } from '../../api/companionChat';
 import type {
   CompanionCTA,
   CompanionMessage,
@@ -36,7 +37,7 @@ function getDominantFactor(reportContext: CompanionReportContext) {
   return factors[0];
 }
 
-function hasEnoughContextForRecommendation(
+export function hasEnoughContextForRecommendation(
   reportContext: CompanionReportContext,
   sessionContext: CompanionSessionContext
 ) {
@@ -65,7 +66,7 @@ function hasEnoughContextForRecommendation(
   return structuralSignals >= 2;
 }
 
-function buildRecommendation(
+export function buildRecommendation(
   reportContext: CompanionReportContext,
   sessionContext: CompanionSessionContext
 ): CompanionRecommendation {
@@ -168,7 +169,7 @@ function buildInterpretationMessage(
   ) {
     return {
       stage: 'personalize_property',
-      message: `Great. Let’s personalize this report to the property. We’ll start with the exact address so I can move from ${locationLabel} at the ZIP level toward the actual home.`,
+      message: `Great. Let’s make this more specific to the home. We’ll start with the exact address so I can move from ${locationLabel} at the ZIP level toward the actual property.`,
       prompts: ['Use this address', 'Why do you need my address?'],
       requestedFields: ['exactAddress'],
     };
@@ -196,9 +197,9 @@ function buildInterpretationMessage(
   if (lower.includes('score') || lower.includes('report')) {
     return {
       stage: 'interpret_report',
-      message: `Your storm score of ${reportContext.stormScore}/100 is a regional exposure reading, not a property inspection result. For ${locationLabel}, the biggest driver in this report is ${dominantFactor.key}, which means that is the first place to focus when deciding whether this home needs a closer look.`,
+      message: `Your storm score of ${reportContext.stormScore}/100 is a regional exposure reading, not a property inspection result. For ${locationLabel}, the biggest driver in this report is ${dominantFactor.key}, so that is the first thing worth understanding before deciding whether the home needs a closer look.`,
       prompts: [
-        'What should I do next?',
+        'What matters most here?',
         'Personalize this for my home',
       ],
     };
@@ -207,7 +208,7 @@ function buildInterpretationMessage(
   if (lower.includes('factor') || lower.includes('matter') || lower.includes('important')) {
     return {
       stage: 'interpret_report',
-      message: `The strongest signal in this report is ${dominantFactor.key}. In practical terms, that is the factor most likely to shape real storm-related issues for this property area, so the next useful step is to see how that exposure translates to the condition of the actual home.`,
+      message: `The strongest signal in this report is ${dominantFactor.key}. In practical terms, that is the factor most likely to shape real storm-related issues for this property area, so the next useful move is to connect that exposure to the condition of an actual home.`,
       prompts: [
         'What should I do next?',
         'How serious is this for insurance?',
@@ -229,7 +230,7 @@ function buildInterpretationMessage(
     }
     return {
       stage: 'interpret_report',
-      message: `This report helps explain exposure, but it is not insurance documentation by itself. Its value is showing why an inspection may matter. If your goal is insurance readiness, the next step is to narrow this into the inspection that would create the strongest supporting documentation for your situation.`,
+      message: `This report helps explain exposure, but it is not insurance documentation by itself. Its value is showing why an inspection may matter. If your goal is insurance readiness, the next move is to narrow this into the inspection that would create the strongest supporting documentation for your situation.`,
       prompts: [
         'What should I do next?',
         'What matters most in this report?',
@@ -251,7 +252,7 @@ function buildInterpretationMessage(
     }
     return {
       stage: 'personalize_property',
-      message: `The next best step is to turn this regional report into property-specific guidance. I only need a few details about the home to narrow the recommendation and point you toward the right inspection.`,
+      message: `The next best step is to turn this regional report into property-specific guidance. I only need a few details about the home to narrow the recommendation and point you toward the right inspection when it makes sense.`,
       prompts: [
         'Use this address',
         'Why do you need my address?',
@@ -262,7 +263,7 @@ function buildInterpretationMessage(
 
   return {
     stage: 'interpret_report',
-    message: `I can help interpret this report for ${locationLabel}. Right now it shows a ${reportContext.riskLevel.toLowerCase()} profile, with the strongest signal in ${dominantFactor.key}. From here, the most useful paths are to understand that signal, personalize it to the home, or move toward the right next step.`,
+    message: `I can help interpret this report for ${locationLabel}. Right now it shows a ${reportContext.riskLevel.toLowerCase()} profile, with the strongest signal in ${dominantFactor.key}. From here, the most useful paths are to understand that signal better, personalize it to a home, or talk through the right next step.`,
     prompts: [
       'Explain my storm score',
       'What should I do next?',
@@ -270,7 +271,7 @@ function buildInterpretationMessage(
   };
 }
 
-function getNextRequestedField(sessionContext: CompanionSessionContext): RequestedField | undefined {
+export function getNextRequestedField(sessionContext: CompanionSessionContext): RequestedField | undefined {
   const p = sessionContext.personalization;
   if (!p.exactAddress) return 'exactAddress';
   if (!p.roofType) return 'roofType';
@@ -287,7 +288,7 @@ function buildPersonalizationQuestion(field: RequestedField, reportContext: Comp
   switch (field) {
     case 'exactAddress':
       return {
-        message: `Let’s start with the property address. This helps the Companion move beyond ZIP ${reportContext.zipCode} and prepare more property-specific guidance.`,
+        message: `Let’s start with the property address. This helps the Companion move beyond ZIP ${reportContext.zipCode} and prepare guidance that feels more specific to the home.`,
         prompts: ['Use this address', 'Why do you need my address?'],
       };
     case 'roofType':
@@ -381,6 +382,178 @@ export async function resolveCompanionTurn(
             action: 'open_booking',
           }
         : undefined,
+  };
+}
+
+function buildRecommendationExplanationMessage(
+  recommendation: CompanionRecommendation,
+  assistantMessage: string
+) {
+  const normalizedMessage = assistantMessage.trim();
+  const mentionsInspectionType = normalizedMessage
+    .toLowerCase()
+    .includes(recommendation.inspectionType.toLowerCase());
+  const mentionsRationaleFragment = normalizedMessage
+    .toLowerCase()
+    .includes(recommendation.rationale.toLowerCase().slice(0, 24));
+
+  let nextMessage = normalizedMessage;
+
+  if (!mentionsInspectionType) {
+    nextMessage = `The clearest next step is a ${recommendation.inspectionType}. ${nextMessage}`;
+  }
+
+  if (!mentionsRationaleFragment) {
+    nextMessage = `${nextMessage} ${recommendation.rationale}`;
+  }
+
+  return nextMessage.replace(/\s+/g, ' ').trim();
+}
+
+function buildRecommendationSuggestedPrompts(suggestedReplies: string[]) {
+  const normalizedReplies = suggestedReplies.filter(Boolean).slice(0, 3);
+
+  if (normalizedReplies.length >= 2) {
+    return normalizedReplies;
+  }
+
+  return ['Schedule my inspection', 'Why this inspection?'];
+}
+
+export function buildLLMInterpretationPayload(
+  sessionContext: CompanionSessionContext,
+  text: string,
+  llmResponse: CompanionChatResponse,
+  recommendation?: CompanionRecommendation
+): CompanionInterpretationPayload {
+  const now = new Date().toISOString();
+  const requestedField = llmResponse.requestedField || undefined;
+  const stage =
+    requestedField || llmResponse.responseMode === 'personalize'
+      ? 'personalize_property'
+      : llmResponse.responseMode === 'recommend' || llmResponse.responseMode === 'handoff'
+        ? 'recommend_action'
+        : sessionContext.activeStage === 'live_intelligence'
+          ? 'live_intelligence'
+          : 'interpret_report';
+
+  const sourceMode =
+    stage === 'personalize_property' || stage === 'recommend_action'
+      ? 'personalized'
+      : sessionContext.activeStage === 'live_intelligence'
+        ? 'live'
+        : 'report';
+
+  const userMessage: CompanionMessage = {
+    id: `user-${Date.now()}`,
+    role: 'user',
+    stage: sessionContext.activeStage,
+    text,
+    timestamp: now,
+  };
+
+  const assistantMessage: CompanionMessage = {
+    id: `assistant-${Date.now() + 1}`,
+    role: 'assistant',
+    stage,
+    text:
+      stage === 'recommend_action' && recommendation
+        ? buildRecommendationExplanationMessage(recommendation, llmResponse.assistantMessage)
+        : llmResponse.assistantMessage,
+    timestamp: new Date().toISOString(),
+    sourceMode,
+  };
+
+  return {
+    stage,
+    sourceMode,
+    userMessage,
+    assistantMessage,
+    suggestedPrompts:
+      stage === 'recommend_action'
+        ? buildRecommendationSuggestedPrompts(llmResponse.suggestedReplies)
+        : llmResponse.suggestedReplies,
+    requestedFields: requestedField ? [requestedField] : [],
+    recommendation,
+    cta: llmResponse.showBookingCTA
+      ? {
+          label: 'Schedule My Inspection',
+          action: 'open_booking',
+        }
+      : undefined,
+  };
+}
+
+export function applyDeterministicResponseHooks(
+  reportContext: CompanionReportContext,
+  sessionContext: CompanionSessionContext,
+  llmResponse: CompanionChatResponse
+): {
+  stage: 'interpret_report' | 'personalize_property' | 'recommend_action' | 'live_intelligence';
+  sourceMode: 'report' | 'personalized' | 'live';
+  requestedFields: RequestedField[];
+  recommendation?: CompanionRecommendation;
+  cta?: CompanionCTA;
+} {
+  const enoughContext = hasEnoughContextForRecommendation(reportContext, sessionContext);
+  const nextRequestedField = getNextRequestedField(sessionContext);
+  const hasRecommendation = Boolean(sessionContext.recommendation);
+  const shouldMoveToRecommendation =
+    enoughContext &&
+    (
+      llmResponse.responseMode === 'recommend' ||
+      llmResponse.responseMode === 'handoff' ||
+      llmResponse.showRecommendation ||
+      llmResponse.showBookingCTA ||
+      hasRecommendation
+    );
+
+  if (shouldMoveToRecommendation) {
+    const recommendation = sessionContext.recommendation || buildRecommendation(reportContext, sessionContext);
+    return {
+      stage: 'recommend_action',
+      sourceMode: 'personalized',
+      requestedFields: [],
+      recommendation,
+      cta: {
+        label: 'Schedule My Inspection',
+        action: 'open_booking',
+      },
+    };
+  }
+
+  if (llmResponse.requestedField) {
+    return {
+      stage: 'personalize_property',
+      sourceMode: 'personalized',
+      requestedFields: [llmResponse.requestedField],
+    };
+  }
+
+  if (
+    llmResponse.responseMode === 'personalize' &&
+    nextRequestedField &&
+    !enoughContext
+  ) {
+    return {
+      stage: 'personalize_property',
+      sourceMode: 'personalized',
+      requestedFields: [nextRequestedField],
+    };
+  }
+
+  if (sessionContext.activeStage === 'live_intelligence') {
+    return {
+      stage: 'live_intelligence',
+      sourceMode: 'live',
+      requestedFields: [],
+    };
+  }
+
+  return {
+    stage: 'interpret_report',
+    sourceMode: 'report',
+    requestedFields: [],
   };
 }
 

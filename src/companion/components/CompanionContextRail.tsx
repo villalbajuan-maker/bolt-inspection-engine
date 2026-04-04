@@ -52,7 +52,7 @@ export function CompanionContextRail({
   const completion = Math.round((personalization?.completionScore || 0) * 100);
 
   return (
-    <aside className="grid gap-3 md:grid-cols-2 lg:sticky lg:top-[76px] lg:grid-cols-1">
+    <aside className="grid gap-3">
       <ReportSnapshotCard
         score={reportContext.stormScore}
         riskLevel={reportContext.riskLevel}

@@ -72,20 +72,20 @@ export function WhatChangedInline({
       icon={ShieldCheck}
       tone="info"
     >
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         {items.map((item) => {
           const Icon = item.icon;
 
           return (
             <div
               key={item.key}
-              className="flex items-start gap-3 rounded-2xl border border-white/70 bg-white/80 px-3 py-3"
+              className="flex items-start gap-3 rounded-2xl border border-white/70 bg-white/80 px-3 py-2.5"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <div className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
                 <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-slate-900">{item.title}</div>
+                <div className="text-[13px] font-semibold text-slate-900">{item.title}</div>
                 <p className="mt-1 text-sm leading-relaxed text-slate-600">
                   {item.description}
                 </p>

@@ -65,6 +65,18 @@ function getOutcomeSummary(
   return `Best when you need a broad condition-based next step that turns ${sourcePhrase} into a clearer property assessment.`;
 }
 
+function getRecommendationCue(urgency: CompanionRecommendation['urgency']) {
+  if (urgency === 'high') {
+    return 'Worth prioritizing soon';
+  }
+
+  if (urgency === 'medium') {
+    return 'Strong next step';
+  }
+
+  return 'Good next step';
+}
+
 export function RecommendationInline({
   recommendation,
   sourceMode = 'personalized',
@@ -73,6 +85,7 @@ export function RecommendationInline({
 }: RecommendationInlineProps) {
   const Icon = getInspectionIcon(recommendation.inspectionType);
   const highlights = getInspectionHighlights(recommendation.inspectionType);
+  const recommendationCue = getRecommendationCue(recommendation.urgency);
   const tone =
     recommendation.urgency === 'high'
       ? 'warning'
@@ -95,64 +108,69 @@ export function RecommendationInline({
       tone={tone}
       media={
         <div className="overflow-hidden rounded-2xl border border-white/70 bg-white/92">
-          <div className="grid gap-0 sm:grid-cols-[190px_minmax(0,1fr)]">
-            <div className={`relative min-h-[150px] overflow-hidden bg-gradient-to-br ${visualPalette}`}>
+          <div className="grid gap-0 sm:grid-cols-[174px_minmax(0,1fr)]">
+            <div className={`relative min-h-[124px] overflow-hidden bg-gradient-to-br sm:min-h-[138px] ${visualPalette}`}>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.2),transparent_42%)]" />
               <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.04),transparent)]" />
               <div className="absolute left-4 top-4 inline-flex items-center rounded-full bg-white/18 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur-sm">
-                {recommendation.urgency} priority
+                {recommendationCue}
               </div>
               <div className="absolute bottom-4 left-4 right-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/14 text-white shadow-inner backdrop-blur-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/14 text-white shadow-inner backdrop-blur-sm">
                   <Icon className="h-7 w-7" />
                 </div>
-                <div className="mt-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/75">
+                <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">
                   Inspection preview
                 </div>
-                <div className="mt-1 text-lg font-semibold leading-tight text-white">
+                <div className="mt-1 text-[17px] font-semibold leading-tight text-white">
                   {recommendation.inspectionType}
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col justify-between gap-3 p-4">
+            <div className="flex flex-col justify-between gap-3 p-3 sm:p-3.5">
               <div>
                 <div className="flex flex-wrap gap-2">
                   <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-700">
-                    Decision-ready
+                    Companion guidance
                   </div>
                   <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-700">
-                    {recommendation.urgency} priority
+                    {recommendationCue}
                   </div>
                 </div>
-                <div className="mt-3 text-sm font-semibold leading-snug text-slate-900">
+                <div className="mt-2.5 text-[15px] font-semibold leading-snug text-slate-900 sm:text-sm">
                   {recommendation.inspectionType}
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-700">
                   {recommendation.rationale}
                 </p>
               </div>
 
               {activeCTA && (
-                <button
-                  type="button"
-                  onClick={() => onCTA?.(activeCTA)}
-                  className="ds-btn-primary inline-flex min-h-[44px] items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold shadow-[0_12px_28px_rgba(47,107,255,0.18)]"
-                >
-                  {activeCTA.label}
-                </button>
+                <div className="space-y-2">
+                  <p className="text-xs leading-relaxed text-slate-500">
+                    If this feels like the right next move, you can carry this recommendation into scheduling without starting over.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onCTA?.(activeCTA)}
+                    className="ds-btn-primary inline-flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold shadow-[0_12px_28px_rgba(47,107,255,0.18)] sm:w-auto"
+                  >
+                    {activeCTA.label}
+                  </button>
+                </div>
               )}
             </div>
           </div>
         </div>
       }
     >
-      <div className="space-y-3">
-        <div className="rounded-2xl border border-slate-200 bg-white/82 p-3.5">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+      <div className="space-y-2.5">
+        <div className="rounded-2xl border border-slate-200 bg-white/82 p-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
             What you get next
           </div>
-          <div className="mt-3 space-y-2">
+          <div className="mt-2.5 space-y-2">
             {highlights.map((highlight) => (
               <div key={highlight} className="flex items-start gap-2.5">
                 <div className="mt-1.5 h-2 w-2 rounded-full bg-[var(--ds-primary-900)]" />

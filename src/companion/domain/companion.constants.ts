@@ -4,7 +4,7 @@ export const DEFAULT_STAGE: CompanionStage = 'welcome';
 
 export const DEFAULT_PROMPTS = [
   'Explain my storm score',
-  'What should I do next?',
+  'What matters most here?',
   'Personalize this for my home',
 ];
 
@@ -13,7 +13,7 @@ export function buildWelcomeMessage(locationLabel: string): CompanionMessage {
     id: 'companion-welcome',
     role: 'assistant',
     stage: 'welcome',
-    text: `I reviewed your storm report for ${locationLabel}. I can quickly explain what the score means, what matters most for this property area, and whether it makes sense to move toward an inspection.`,
+    text: `I reviewed your storm report for ${locationLabel}. I can explain what it means in plain language, help connect it to a real property, and answer questions before we decide whether an inspection makes sense.`,
     timestamp: new Date().toISOString(),
     sourceMode: 'report',
   };

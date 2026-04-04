@@ -13,13 +13,13 @@ type InlineAttachmentProps = {
 function getToneClasses(tone: NonNullable<InlineAttachmentProps['tone']>) {
   switch (tone) {
     case 'success':
-      return 'border-emerald-200 bg-emerald-50/70';
+      return 'border-emerald-200/90 bg-emerald-50/60';
     case 'info':
-      return 'border-sky-200 bg-sky-50/70';
+      return 'border-sky-200/90 bg-sky-50/60';
     case 'warning':
-      return 'border-amber-200 bg-amber-50/70';
+      return 'border-amber-200/90 bg-amber-50/60';
     default:
-      return 'border-slate-200 bg-slate-50';
+      return 'border-slate-200/90 bg-slate-50/88';
   }
 }
 
@@ -47,17 +47,17 @@ export function InlineAttachment({
 }: InlineAttachmentProps) {
   return (
     <div
-      className={`ml-3 max-w-3xl rounded-[1.35rem] border px-3.5 py-3 ${getToneClasses(
+      className={`max-w-full rounded-[1.5rem] border px-3 py-3 sm:ml-2 sm:max-w-[88%] sm:px-3.5 ${getToneClasses(
         tone
-      )} shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:px-4`}
+      )} shadow-[0_12px_28px_rgba(15,23,42,0.05)] sm:px-4`}
     >
-      <div className="flex flex-col gap-3">
-        {media && <div className="-mx-1">{media}</div>}
+      <div className="flex flex-col gap-2.5">
+        {media && <div className="-mx-1 mb-0.5">{media}</div>}
 
         <div className="flex items-start gap-3">
         {Icon && (
           <div
-            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${getIconToneClasses(
+            className={`mt-0.5 flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-xl shadow-sm ${getIconToneClasses(
               tone
             )}`}
           >
@@ -66,7 +66,7 @@ export function InlineAttachment({
         )}
           <div className="min-w-0 flex-1">
             {eyebrow && (
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                 {eyebrow}
               </div>
             )}
@@ -74,9 +74,9 @@ export function InlineAttachment({
               {title}
             </div>
             {description && (
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-700">{description}</p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-700">{description}</p>
             )}
-            {children && <div className="mt-2.5">{children}</div>}
+            {children && <div className="mt-2">{children}</div>}
           </div>
         </div>
       </div>

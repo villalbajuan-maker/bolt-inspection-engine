@@ -28,12 +28,12 @@ export function PropertyPreviewInline({ personalization }: PropertyPreviewInline
       tone="neutral"
     >
       <div className="flex flex-wrap gap-2">
-        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
           <Home className="h-3.5 w-3.5" />
           Property identified
         </div>
         {personalization.roofType && (
-          <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+          <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
             {personalization.roofType}
           </div>
         )}

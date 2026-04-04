@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useReducer } from 'react';
+import {
+  buildCompanionChatRequest,
+  fetchCompanionChatResponse,
+} from '../../api/companionChat';
 import { companionMachine, createInitialCompanionState } from '../machine/companionMachine';
 import * as selectors from '../machine/companionMachine.selectors';
 import {
+  applyDeterministicResponseHooks,
+  buildLLMInterpretationPayload,
   bootResolver,
   resolveCompanionTurn,
   resolvePersonalizationStep,
@@ -77,25 +83,103 @@ export function useCompanionMachine({
     let cancelled = false;
 
     const activeField = context.requestedFields[0];
-    const resolver = activeField
-      ? resolvePersonalizationStep(reportContext, context, activeField, text)
-      : resolveCompanionTurn(reportContext, context, text);
 
-    void resolver.then((payload) => {
-      if (cancelled) return;
-      send({
-        type: 'AI_RESPONSE_SUCCESS',
-        payload,
-      });
-    }).catch((error) => {
-      if (cancelled) return;
-      send({
-        type: 'AI_RESPONSE_FAILURE',
-        code: 'TURN_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to resolve Companion response.',
-        retryable: true,
-      });
-    });
+    if (activeField) {
+      void resolvePersonalizationStep(reportContext, context, activeField, text)
+        .then((payload) => {
+          if (cancelled) return;
+          send({
+            type: 'AI_RESPONSE_SUCCESS',
+            payload,
+          });
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          send({
+            type: 'AI_RESPONSE_FAILURE',
+            code: 'TURN_ERROR',
+            message: error instanceof Error ? error.message : 'Failed to resolve Companion response.',
+            retryable: true,
+          });
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void (async () => {
+      try {
+        const llmRequest = buildCompanionChatRequest(reportContext, context, text);
+        const llmResponse = await fetchCompanionChatResponse(llmRequest);
+
+        if (cancelled) return;
+
+        const deterministicHooks = applyDeterministicResponseHooks(
+          reportContext,
+          context,
+          llmResponse,
+        );
+
+        const needsDeterministicRecommendation =
+          deterministicHooks.stage === 'recommend_action' &&
+          !deterministicHooks.recommendation;
+
+        if (needsDeterministicRecommendation) {
+          const deterministicPayload = await resolveCompanionTurn(reportContext, context, text);
+          if (cancelled) return;
+
+          send({
+            type: 'AI_RESPONSE_SUCCESS',
+            payload: {
+              ...deterministicPayload,
+              assistantMessage: {
+                ...deterministicPayload.assistantMessage,
+                text: llmResponse.assistantMessage,
+              },
+              suggestedPrompts: llmResponse.suggestedReplies.length
+                ? llmResponse.suggestedReplies
+                : deterministicPayload.suggestedPrompts,
+            },
+          });
+          return;
+        }
+
+        send({
+          type: 'AI_RESPONSE_SUCCESS',
+          payload: {
+            ...buildLLMInterpretationPayload(
+              context,
+              text,
+              llmResponse,
+              deterministicHooks.recommendation,
+            ),
+            stage: deterministicHooks.stage,
+            sourceMode: deterministicHooks.sourceMode,
+            requestedFields: deterministicHooks.requestedFields,
+            recommendation: deterministicHooks.recommendation,
+            cta: deterministicHooks.cta,
+          },
+        });
+      } catch (_llmError) {
+        try {
+          const payload = await resolveCompanionTurn(reportContext, context, text);
+          if (cancelled) return;
+          send({
+            type: 'AI_RESPONSE_SUCCESS',
+            payload,
+          });
+        } catch (error) {
+          if (cancelled) return;
+          send({
+            type: 'AI_RESPONSE_FAILURE',
+            code: 'TURN_ERROR',
+            message: error instanceof Error ? error.message : 'Failed to resolve Companion response.',
+            retryable: true,
+          });
+        }
+      }
+    })();
 
     return () => {
       cancelled = true;

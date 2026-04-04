@@ -3,15 +3,15 @@ import type { CompanionStage, SourceMode } from '../domain/companion.types';
 export function getStageTitle(stage: CompanionStage) {
   switch (stage) {
     case 'interpret_report':
-      return 'Understand the report';
+      return 'Understanding the report';
     case 'personalize_property':
-      return 'Personalize the property';
+      return 'Making it more specific';
     case 'live_intelligence':
-      return 'Check live context';
+      return 'Adding live context';
     case 'recommend_action':
-      return 'Review the recommendation';
+      return 'Getting to a next step';
     default:
-      return 'Start with the report';
+      return 'Starting with the report';
   }
 }
 
@@ -21,30 +21,30 @@ export function getStageSummary(
 ) {
   switch (stage) {
     case 'interpret_report':
-      return `Translate the report for ${locationLabel || 'this area'} into plain language before moving into property-specific guidance.`;
+      return `Translate the report for ${locationLabel || 'this area'} into plain language before narrowing it to a real property decision.`;
     case 'personalize_property':
-      return 'Add a few home details so the guidance becomes more specific to this property.';
+      return 'Add just enough home detail so the guidance stops being generic and starts feeling relevant.';
     case 'live_intelligence':
-      return 'Review verified public signals alongside the broader regional picture.';
+      return 'Bring in verified public signals and explain what they change for the reported area.';
     case 'recommend_action':
-      return 'Bring the report and property context together into one clear next step and move naturally into booking.';
+      return 'Bring the report and property context together into one grounded next step, while still leaving room for follow-up questions.';
     default:
-      return 'Understand the report, personalize it, and move toward the right next step.';
+      return 'Start with the report, add context when useful, and move naturally toward the right next step.';
   }
 }
 
 export function getStageLabel(stage: CompanionStage) {
   switch (stage) {
     case 'interpret_report':
-      return 'Reading the report';
+      return 'Report';
     case 'personalize_property':
-      return 'Adding property context';
+      return 'Property';
     case 'live_intelligence':
-      return 'Checking live context';
+      return 'Live';
     case 'recommend_action':
-      return 'Preparing the recommendation';
+      return 'Recommendation';
     default:
-      return 'Starting the conversation';
+      return 'Start';
   }
 }
 

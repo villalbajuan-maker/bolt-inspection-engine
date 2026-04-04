@@ -57,8 +57,8 @@ export function EvidencePreviewInline({
       tone={hasVerifiedHeadline ? 'info' : 'warning'}
       media={
         <div className="overflow-hidden rounded-2xl border border-white/70 bg-white/92">
-          <div className="grid gap-0 sm:grid-cols-[190px_minmax(0,1fr)]">
-            <div className="relative min-h-[150px] overflow-hidden bg-slate-200">
+          <div className="grid gap-0 sm:grid-cols-[174px_minmax(0,1fr)]">
+            <div className="relative min-h-[124px] overflow-hidden bg-slate-200 sm:min-h-[138px]">
               <img
                 src={signalCard?.imageUrl}
                 alt={headline?.title || signalCard?.title || 'Regional evidence preview'}
@@ -83,7 +83,7 @@ export function EvidencePreviewInline({
               </div>
             </div>
 
-            <div className="flex flex-col justify-between gap-3 p-4">
+            <div className="flex flex-col justify-between gap-3 p-3 sm:p-3.5">
               <div>
                 <div className="flex flex-wrap gap-2">
                   <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-700">
@@ -94,7 +94,7 @@ export function EvidencePreviewInline({
                   </div>
                 </div>
 
-                <div className="mt-3 text-sm font-semibold leading-snug text-slate-900">
+                <div className="mt-2.5 text-[15px] font-semibold leading-snug text-slate-900 sm:text-sm">
                   {headline?.title || signalCard?.title}
                 </div>
               </div>
@@ -122,10 +122,10 @@ export function EvidencePreviewInline({
       }
     >
       {(windCard || floodCard) && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {windCard && (
-            <div className="min-w-[220px] flex-1 rounded-2xl border border-slate-200 bg-white/82 px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-800">
+            <div className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white/82 px-3 py-2.5">
+              <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-800">
                 <Wind className="h-3.5 w-3.5" />
                 Wind context
               </div>
@@ -136,8 +136,8 @@ export function EvidencePreviewInline({
           )}
 
           {floodCard && (
-            <div className="min-w-[220px] flex-1 rounded-2xl border border-slate-200 bg-white/82 px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-800">
+            <div className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white/82 px-3 py-2.5">
+              <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-800">
                 <Waves className="h-3.5 w-3.5" />
                 Flood context
               </div>
