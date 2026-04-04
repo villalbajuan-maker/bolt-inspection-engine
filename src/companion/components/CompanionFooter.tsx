@@ -3,6 +3,36 @@ import { Mic, Send } from 'lucide-react';
 import { useEffect } from 'react';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 
+function mergeVoiceDraft(...segments: string[]) {
+  const parts = segments.map((segment) => segment.trim()).filter(Boolean);
+
+  if (parts.length === 0) {
+    return '';
+  }
+
+  let mergedWords = parts[0].split(/\s+/);
+
+  for (let index = 1; index < parts.length; index += 1) {
+    const nextWords = parts[index].split(/\s+/);
+    const maxOverlap = Math.min(mergedWords.length, nextWords.length);
+    let overlap = 0;
+
+    for (let size = maxOverlap; size > 0; size -= 1) {
+      const mergedSuffix = mergedWords.slice(-size).join(' ').toLowerCase();
+      const nextPrefix = nextWords.slice(0, size).join(' ').toLowerCase();
+
+      if (mergedSuffix === nextPrefix) {
+        overlap = size;
+        break;
+      }
+    }
+
+    mergedWords = mergedWords.concat(nextWords.slice(overlap));
+  }
+
+  return mergedWords.join(' ').trim();
+}
+
 type CompanionFooterProps = {
   currentInput?: string;
   disabled?: boolean;
@@ -38,7 +68,7 @@ export function CompanionFooter({
     resetTranscript,
   } = useSpeechToText();
   const isListening = speechState === 'listening';
-  const currentVoiceText = [transcript.trim(), interimTranscript.trim()].filter(Boolean).join(' ').trim();
+  const currentVoiceText = mergeVoiceDraft(transcript, interimTranscript);
   const hasVoiceDraft = Boolean(currentVoiceText);
 
   useEffect(() => {

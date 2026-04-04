@@ -76,6 +76,38 @@ function getErrorMessage(errorCode?: string) {
   }
 }
 
+function mergeTranscriptChunks(chunks: string[]) {
+  const normalizedChunks = chunks
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+
+  if (normalizedChunks.length === 0) {
+    return '';
+  }
+
+  let mergedWords = normalizedChunks[0].split(/\s+/);
+
+  for (let index = 1; index < normalizedChunks.length; index += 1) {
+    const nextWords = normalizedChunks[index].split(/\s+/);
+    const maxOverlap = Math.min(mergedWords.length, nextWords.length);
+    let overlap = 0;
+
+    for (let size = maxOverlap; size > 0; size -= 1) {
+      const mergedSuffix = mergedWords.slice(-size).join(' ').toLowerCase();
+      const nextPrefix = nextWords.slice(0, size).join(' ').toLowerCase();
+
+      if (mergedSuffix === nextPrefix) {
+        overlap = size;
+        break;
+      }
+    }
+
+    mergedWords = mergedWords.concat(nextWords.slice(overlap));
+  }
+
+  return mergedWords.join(' ').trim();
+}
+
 export function useSpeechToText(language = 'en-US'): UseSpeechToTextResult {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const shouldResumeListeningRef = useRef(false);
@@ -130,8 +162,8 @@ export function useSpeechToText(language = 'en-US'): UseSpeechToTextResult {
         }
       }
 
-      setTranscript(finalChunks.join(' ').trim());
-      setInterimTranscript(interimChunks.join(' ').trim());
+      setTranscript(mergeTranscriptChunks(finalChunks));
+      setInterimTranscript(mergeTranscriptChunks(interimChunks));
     };
 
     recognition.onerror = (event) => {
