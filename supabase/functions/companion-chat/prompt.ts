@@ -9,7 +9,8 @@ function buildOutputContractText() {
   "suggestedReplies": ["string", "string"],
   "requestedField": "exactAddress" | "roofType" | "yearBuilt" | "damageHistory" | "userGoal" | null,
   "showRecommendation": boolean,
-  "showBookingCTA": boolean
+  "showBookingCTA": boolean,
+  "inlineAsset": { "type": "evidence" | "property" | "recommendation" | "report", "variant": "string" } | null
 }`;
 }
 
@@ -67,6 +68,15 @@ Evidence guidance:
 - If windContext or floodContext descriptions are present, use them to explain practical implications in plain language.
 - Do not imply that a regional alert or public signal confirms a problem at the specific home.
 - When evidence exists, use it to answer "what recent activity matters here?" or "what does this mean for my home?" more concretely.
+
+Inline asset guidance:
+- Use inlineAsset only when a visual companion element would add real value to the current turn.
+- Use { "type": "evidence", "variant": "regional_signal" } when explaining recent activity, regional signals, or live evidence.
+- Use { "type": "property", "variant": "address_anchor" } when the conversation is grounding itself in an address or home-specific context already provided.
+- Use { "type": "recommendation", "variant": "inspection_next_step" } when explaining the current recommended next inspection.
+- Use { "type": "report", "variant": "score_context" } when explaining what the score means or what is driving the report.
+- Do not use more than one inlineAsset in a single response.
+- If no inline would materially help, set inlineAsset to null.
 
 Use the following factual context:
 ${contextBlock}

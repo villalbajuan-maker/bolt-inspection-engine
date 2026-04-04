@@ -1,6 +1,7 @@
 import type {
   CompanionChatRequest,
   CompanionChatResponse,
+  CompanionInlineAsset,
   CompanionMessageHistoryItem,
   CompanionRequestedField,
   CompanionResponseMode,
@@ -89,6 +90,47 @@ function normalizeResponseMode(value: unknown): CompanionResponseMode {
     : "clarify";
 }
 
+function normalizeInlineAsset(value: unknown): CompanionInlineAsset | null {
+  if (!value || typeof value !== "object") return null;
+
+  const candidate = value as Record<string, unknown>;
+  const type = candidate.type;
+  const variant = typeof candidate.variant === "string" ? candidate.variant : undefined;
+
+  if (type === "evidence") {
+    return {
+      type,
+      variant:
+        variant === "regional_signal" || variant === "wind" || variant === "flood"
+          ? variant
+          : undefined,
+    };
+  }
+
+  if (type === "property") {
+    return {
+      type,
+      variant: variant === "address_anchor" ? variant : undefined,
+    };
+  }
+
+  if (type === "recommendation") {
+    return {
+      type,
+      variant: variant === "inspection_next_step" ? variant : undefined,
+    };
+  }
+
+  if (type === "report") {
+    return {
+      type,
+      variant: variant === "score_context" ? variant : undefined,
+    };
+  }
+
+  return null;
+}
+
 function extractJsonObject(raw: string): string | null {
   const trimmed = raw.trim();
 
@@ -126,6 +168,7 @@ function normalizeModelResponse(rawContent: string): CompanionChatResponse {
       requestedField: normalizeRequestedField(parsed.requestedField),
       showRecommendation: Boolean(parsed.showRecommendation),
       showBookingCTA: Boolean(parsed.showBookingCTA),
+      inlineAsset: normalizeInlineAsset(parsed.inlineAsset),
     };
   } catch (_error) {
     return fallbackResponse();

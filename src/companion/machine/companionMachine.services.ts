@@ -461,6 +461,7 @@ export function buildLLMInterpretationPayload(
         : llmResponse.assistantMessage,
     timestamp: new Date().toISOString(),
     sourceMode,
+    inlineAsset: llmResponse.inlineAsset || null,
   };
 
   return {
@@ -480,6 +481,7 @@ export function buildLLMInterpretationPayload(
           action: 'open_booking',
         }
       : undefined,
+    inlineAsset: llmResponse.inlineAsset || null,
   };
 }
 

@@ -63,6 +63,7 @@ export function CompanionModal({ isOpen, onClose, reportContext, onOpenBooking }
           <div className="min-h-0 h-full border-b border-slate-200/90 bg-transparent">
             <CompanionConversationPane
               stage={selectors.activeStage || DEFAULT_STAGE}
+              reportContext={reportContext}
               messages={selectors.messages}
               suggestedPrompts={selectors.suggestedPrompts}
               requestedFields={selectors.requestedFields}

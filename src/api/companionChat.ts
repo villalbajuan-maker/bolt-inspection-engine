@@ -1,4 +1,5 @@
 import type {
+  CompanionInlineAsset,
   CompanionMessage,
   CompanionRecommendation,
   CompanionReportContext,
@@ -79,6 +80,7 @@ export type CompanionChatResponse = {
   requestedField?: RequestedField | null;
   showRecommendation?: boolean;
   showBookingCTA?: boolean;
+  inlineAsset?: CompanionInlineAsset | null;
 };
 
 export type CompanionInterpretationPayload = {
@@ -91,6 +93,7 @@ export type CompanionInterpretationPayload = {
   personalization?: Partial<CompanionSessionContext['personalization']>;
   recommendation?: CompanionRecommendation;
   cta?: CompanionSessionContext['activeCTA'];
+  inlineAsset?: CompanionInlineAsset | null;
 };
 
 function buildMessageHistory(messages: CompanionMessage[]) {

@@ -29,6 +29,12 @@ export type CompanionRecommendation = {
   urgency: 'low' | 'medium' | 'high';
 };
 
+export type CompanionInlineAsset =
+  | { type: 'evidence'; variant?: 'regional_signal' | 'wind' | 'flood' }
+  | { type: 'property'; variant?: 'address_anchor' }
+  | { type: 'recommendation'; variant?: 'inspection_next_step' }
+  | { type: 'report'; variant?: 'score_context' };
+
 export type BookingHandoffPayload = {
   address?: string;
   city?: string;
@@ -60,6 +66,7 @@ export type CompanionMessage = {
   text: string;
   timestamp: string;
   sourceMode?: SourceMode;
+  inlineAsset?: CompanionInlineAsset | null;
 };
 
 export type CompanionModalProps = {

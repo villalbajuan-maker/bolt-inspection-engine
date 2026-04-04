@@ -17,6 +17,12 @@ export type CompanionMessageHistoryItem = {
   content: string;
 };
 
+export type CompanionInlineAsset =
+  | { type: "evidence"; variant?: "regional_signal" | "wind" | "flood" }
+  | { type: "property"; variant?: "address_anchor" }
+  | { type: "recommendation"; variant?: "inspection_next_step" }
+  | { type: "report"; variant?: "score_context" };
+
 export type CompanionChatRequest = {
   sessionId: string;
   reportContext: {
@@ -91,4 +97,5 @@ export type CompanionChatResponse = {
   requestedField?: CompanionRequestedField | null;
   showRecommendation?: boolean;
   showBookingCTA?: boolean;
+  inlineAsset?: CompanionInlineAsset | null;
 };

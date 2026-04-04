@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { CompanionMessageList } from './CompanionMessageList';
-import type { CompanionMessage, CompanionRecommendation, CompanionSessionContext, CompanionStage, RequestedField } from '../domain/companion.types';
+import type { CompanionMessage, CompanionRecommendation, CompanionReportContext, CompanionSessionContext, CompanionStage, RequestedField } from '../domain/companion.types';
 import { PersonalizationProgress } from './personalization/PersonalizationProgress';
 import { PersonalizationStepRenderer } from './personalization/PersonalizationStepRenderer';
 import type { StormEvidenceSnapshot } from '../../api/stormEvidence';
@@ -12,6 +12,7 @@ import { WhatChangedInline } from './attachments/WhatChangedInline';
 
 type CompanionConversationPaneProps = {
   stage: CompanionStage;
+  reportContext: CompanionReportContext;
   messages: CompanionMessage[];
   suggestedPrompts: string[];
   requestedFields?: RequestedField[];
@@ -34,6 +35,7 @@ type CompanionConversationPaneProps = {
 
 export function CompanionConversationPane({
   stage,
+  reportContext,
   messages,
   suggestedPrompts,
   requestedFields = [],
@@ -85,8 +87,10 @@ export function CompanionConversationPane({
           messages={messages}
           stage={stage}
           sourceMode={sourceMode}
+          reportContext={reportContext}
           evidenceSnapshot={evidenceSnapshot}
           recommendation={recommendation}
+          personalization={personalization}
           activeCTA={activeCTA}
           onCTA={onCTA}
         />
